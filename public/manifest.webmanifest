@@ -1,0 +1,8 @@
+{
+  "name": "NutriClock Cloud",
+  "short_name": "NutriClock",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#07111f",
+  "theme_color": "#07111f"
+}
