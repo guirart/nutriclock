@@ -1,26 +1,17 @@
-# NutriClock v4 Profissional
+# NutriClock v4.1
 
-Versão completa com:
+Alterações desta versão:
 
-- dashboard redesenhado;
-- calendário mensal;
-- gráficos de calorias e peso;
-- edição e exclusão de registros;
-- chave privada escondida nas configurações;
-- integração preservada com Supabase, Vercel e GPT Actions;
-- layout responsivo para iPhone e desktop.
+- formulário de novo registro simplificado;
+- campos aparecem conforme o tipo escolhido;
+- rótulos mais claros;
+- relógio sem segundos;
+- relógio fixado visualmente no canto superior direito;
+- botão principal alterado para “Registrar”.
 
-## Publicação
-
+Publicação:
 1. Extraia o ZIP.
-2. Apague o conteúdo antigo do repositório ou substitua tudo.
-3. Envie todos os arquivos deste pacote para a raiz do GitHub.
-4. Mantenha as mesmas variáveis de ambiente da Vercel:
-   - SUPABASE_URL
-   - SUPABASE_SERVICE_ROLE_KEY
-   - NUTRICLOCK_API_KEY
-   - NUTRICLOCK_USER_ID
-5. Aguarde o deploy automático.
-6. Abra o aplicativo, clique em ⚙️ e cole a NUTRICLOCK_API_KEY uma única vez.
-7. No GPT personalizado, reimporte:
-   https://nutriclock.vercel.app/api/openapi
+2. Envie todo o conteúdo para a raiz do repositório.
+3. Substitua os arquivos existentes.
+4. Faça commit.
+5. Aguarde o deploy automático da Vercel.

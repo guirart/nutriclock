@@ -209,7 +209,7 @@ export default function Home() {
       </div>
       <div className="topActions">
         <div className="liveClock">
-          <strong>{clock.toLocaleTimeString("pt-BR",{timeZone:"America/Sao_Paulo"})}</strong>
+          <strong>{clock.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit",timeZone:"America/Sao_Paulo"})}</strong>
           <span>{clock.toLocaleDateString("pt-BR",{weekday:"long",day:"2-digit",month:"long",timeZone:"America/Sao_Paulo"})}</span>
         </div>
         <button className="iconButton" onClick={()=>setSettingsOpen(true)}><Settings size={20}/></button>
@@ -310,21 +310,105 @@ export default function Home() {
       </article>
 
       <article className="panel formPanel">
-        <div className="panelHeader"><div><h2>{editEntry?"Editar registro":"Novo registro"}</h2><p>{editEntry?"Ajuste os valores e salve":"Adicione manualmente um item"}</p></div>{editEntry&&<button className="ghostButton" onClick={()=>{setEditEntry(null);setForm({type:"meal",description:"",calories:0,protein_g:0,water_ml:0,caffeine_mg:0,weight_kg:"",occurred_at:""})}}>Cancelar</button>}</div>
-        <form onSubmit={submit}>
-          <select value={form.type} onChange={e=>setForm({...form,type:e.target.value})}>
-            <option value="meal">Refeição</option><option value="exercise">Exercício</option><option value="water">Água</option><option value="caffeine">Cafeína</option><option value="weight">Peso</option>
-          </select>
-          <input required placeholder="Descrição" value={form.description} onChange={e=>setForm({...form,description:e.target.value})}/>
-          <div className="formGrid">
-            <input type="number" placeholder="Calorias" value={form.calories} onChange={e=>setForm({...form,calories:e.target.value})}/>
-            <input type="number" placeholder="Proteína (g)" value={form.protein_g} onChange={e=>setForm({...form,protein_g:e.target.value})}/>
-            <input type="number" placeholder="Água (ml)" value={form.water_ml} onChange={e=>setForm({...form,water_ml:e.target.value})}/>
-            <input type="number" placeholder="Cafeína (mg)" value={form.caffeine_mg} onChange={e=>setForm({...form,caffeine_mg:e.target.value})}/>
-            <input type="number" step="0.1" placeholder="Peso (kg)" value={form.weight_kg} onChange={e=>setForm({...form,weight_kg:e.target.value})}/>
+        <div className="panelHeader">
+          <div>
+            <h2>{editEntry ? "Editar registro" : "Novo registro"}</h2>
+            <p>{editEntry ? "Ajuste apenas o que estiver errado" : "Escolha o tipo e preencha somente os campos necessários"}</p>
+          </div>
+          {editEntry && (
+            <button
+              className="ghostButton"
+              onClick={() => {
+                setEditEntry(null);
+                setForm({type:"meal",description:"",calories:0,protein_g:0,water_ml:0,caffeine_mg:0,weight_kg:"",occurred_at:""});
+              }}
+            >
+              Cancelar
+            </button>
+          )}
+        </div>
+
+        <form onSubmit={submit} className="guidedForm">
+          <div className="fieldGroup">
+            <label>O que você quer registrar?</label>
+            <select
+              value={form.type}
+              onChange={(event) => setForm({...form, type:event.target.value})}
+            >
+              <option value="meal">🍽️ Refeição</option>
+              <option value="exercise">🏃 Exercício</option>
+              <option value="water">💧 Água</option>
+              <option value="caffeine">☕ Cafeína</option>
+              <option value="weight">⚖️ Peso</option>
+            </select>
+          </div>
+
+          <div className="fieldGroup">
+            <label>Descrição</label>
+            <input
+              required
+              placeholder={
+                form.type === "meal" ? "Ex.: arroz, feijão e frango" :
+                form.type === "exercise" ? "Ex.: corrida na esteira" :
+                form.type === "water" ? "Ex.: copo de água" :
+                form.type === "caffeine" ? "Ex.: café coado" :
+                "Ex.: pesagem da manhã"
+              }
+              value={form.description}
+              onChange={(event) => setForm({...form, description:event.target.value})}
+            />
+          </div>
+
+          {form.type === "meal" && (
+            <div className="formGrid">
+              <div className="fieldGroup">
+                <label>Calorias</label>
+                <input type="number" min="0" placeholder="kcal" value={form.calories} onChange={e=>setForm({...form,calories:e.target.value})}/>
+              </div>
+              <div className="fieldGroup">
+                <label>Proteína</label>
+                <input type="number" min="0" step="0.1" placeholder="g" value={form.protein_g} onChange={e=>setForm({...form,protein_g:e.target.value})}/>
+              </div>
+            </div>
+          )}
+
+          {form.type === "exercise" && (
+            <div className="fieldGroup">
+              <label>Calorias gastas</label>
+              <input type="number" min="0" placeholder="kcal" value={form.calories} onChange={e=>setForm({...form,calories:e.target.value})}/>
+            </div>
+          )}
+
+          {form.type === "water" && (
+            <div className="fieldGroup">
+              <label>Quantidade de água</label>
+              <input type="number" min="0" placeholder="ml" value={form.water_ml} onChange={e=>setForm({...form,water_ml:e.target.value})}/>
+            </div>
+          )}
+
+          {form.type === "caffeine" && (
+            <div className="fieldGroup">
+              <label>Cafeína</label>
+              <input type="number" min="0" placeholder="mg" value={form.caffeine_mg} onChange={e=>setForm({...form,caffeine_mg:e.target.value})}/>
+            </div>
+          )}
+
+          {form.type === "weight" && (
+            <div className="fieldGroup">
+              <label>Peso</label>
+              <input type="number" min="0" step="0.1" placeholder="kg" value={form.weight_kg} onChange={e=>setForm({...form,weight_kg:e.target.value})}/>
+            </div>
+          )}
+
+          <div className="fieldGroup">
+            <label>Data e horário <span className="optional">(opcional)</span></label>
             <input type="datetime-local" value={form.occurred_at} onChange={e=>setForm({...form,occurred_at:e.target.value})}/>
           </div>
-          <button className="primaryButton" disabled={!apiKey}><Plus size={18}/>{editEntry?"Salvar alteração":"Salvar na nuvem"}</button>
+
+          <button className="primaryButton" disabled={!apiKey}>
+            <Plus size={18}/>
+            {editEntry ? "Salvar alteração" : "Registrar"}
+          </button>
         </form>
       </article>
     </section>
