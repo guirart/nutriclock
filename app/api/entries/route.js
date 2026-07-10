@@ -85,3 +85,45 @@ export async function DELETE(request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
+
+export async function PATCH(request) {
+  const authError = requireApiKey(request);
+  if (authError) return authError;
+
+  try {
+    const body = await request.json();
+    const { id, ...changes } = body;
+
+    if (!id) {
+      return NextResponse.json({ error: "id obrigatório." }, { status: 400 });
+    }
+
+    const allowed = [
+      "type", "description", "calories", "protein_g", "carbs_g", "fat_g",
+      "fiber_g", "water_ml", "caffeine_mg", "weight_kg", "confidence",
+      "notes", "source", "occurred_at"
+    ];
+
+    const update = Object.fromEntries(
+      Object.entries(changes).filter(([key]) => allowed.includes(key))
+    );
+
+    if (!Object.keys(update).length) {
+      return NextResponse.json({ error: "Nenhum campo válido para atualizar." }, { status: 400 });
+    }
+
+    const supabase = getSupabaseAdmin();
+    const { data, error } = await supabase
+      .from("nutrition_entries")
+      .update(update)
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return NextResponse.json({ success: true, entry: data });
+  } catch (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}

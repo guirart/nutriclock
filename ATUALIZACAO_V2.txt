@@ -1,0 +1,19 @@
+ATUALIZAÇÃO NUTRICLOCK V2
+
+1. Extraia este ZIP.
+2. Entre na pasta extraída.
+3. No GitHub, envie o CONTEÚDO para a raiz do repositório, substituindo os arquivos existentes.
+4. Faça o commit.
+5. A Vercel fará o redeploy automático.
+6. Confirme em:
+   https://nutriclock.vercel.app/api/health
+7. No editor do GPT, importe novamente:
+   https://nutriclock.vercel.app/api/openapi
+8. Autenticação:
+   - Chave API
+   - Bearer
+   - valor igual à NUTRICLOCK_API_KEY da Vercel
+9. Política de privacidade:
+   https://nutriclock.vercel.app/privacy
+
+Se a NUTRICLOCK_API_KEY foi alterada, salve a variável e faça redeploy antes de testar.
