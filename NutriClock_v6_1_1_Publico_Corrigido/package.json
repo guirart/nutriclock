@@ -1,0 +1,21 @@
+{
+  "name": "nutriclock-v6-public-test-fixed",
+  "version": "6.1.1",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.57.4",
+    "next": "^15.5.2",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "recharts": "^2.15.4",
+    "lucide-react": "^0.468.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
