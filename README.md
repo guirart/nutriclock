@@ -1,26 +1,19 @@
-# NutriClock v7 — versão limpa
+# NutriClock v7.0.1 — correção de deploy na Vercel
 
-Esta versão remove a mistura de projetos antigos e mantém apenas a aplicação Next.js.
+O build anterior compilava normalmente, mas a Vercel bloqueava a publicação porque o Next.js 15.5.2 foi identificado como vulnerável.
 
-Inclui:
-- dashboard;
-- calendário;
-- registros;
-- edição e exclusão;
-- receitas;
-- histórico;
-- estatísticas;
-- pet virtual;
-- perfil;
-- modo público compartilhado.
+Correções:
+- Next.js atualizado para 15.5.9;
+- React e React DOM alinhados em 19.2.7;
+- Node.js fixado na linha 20.x;
+- nenhuma funcionalidade do NutriClock foi removida.
 
-Publicação:
-1. Crie um repositório novo OU apague todo o conteúdo do repositório atual.
-2. Extraia este ZIP.
-3. Envie apenas o conteúdo extraído para a raiz do GitHub.
-4. Mantenha na Vercel:
-   SUPABASE_URL
-   SUPABASE_SERVICE_ROLE_KEY
-5. Faça deploy.
+## Publicação
 
-Não envie pastas de versões antigas para dentro do repositório.
+1. Extraia o ZIP.
+2. Envie todo o conteúdo para a raiz do repositório.
+3. Substitua os arquivos existentes.
+4. Faça commit.
+5. Aguarde o novo deploy da Vercel.
+
+A mensagem `Vulnerable version of Next.js detected` não deve mais bloquear o deploy.
