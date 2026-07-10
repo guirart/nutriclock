@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Settings, ChevronLeft, ChevronRight, Flame, Dumbbell, Scale,
   Droplets, Coffee, Beef, Plus, Trash2, Pencil, CalendarDays,
-  Home as HomeIcon, Utensils, BarChart3, User, History, Heart, ShoppingCart
+  Home as HomeIcon, Utensils, BarChart3, User, History, Heart, ShoppingCart, Gamepad2, Sparkles, ShieldCheck, AlertTriangle
 } from "lucide-react";
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip,
@@ -117,8 +117,103 @@ function Progress({ value, max }) {
   return <div className="progress"><span style={{width:`${percent}%`}} /></div>;
 }
 
+function displayEntryValue(entry) {
+  if (entry.type === "exercise") return `-${Math.abs(Math.round(Number(entry.calories || 0)))} kcal`;
+  if (entry.type === "water") return `${Math.round(Number(entry.water_ml || 0))} ml`;
+  if (entry.type === "caffeine") return `${Math.round(Number(entry.caffeine_mg || 0))} mg`;
+  if (entry.type === "weight") return entry.weight_kg ? `${Number(entry.weight_kg).toFixed(1)} kg` : "peso";
+  return `${Math.round(Number(entry.calories || 0))} kcal`;
+}
+
+
+function dayScore(entries, key) {
+  const dayEntries = entries.filter((entry) => entry.occurred_at?.slice(0, 10) === key);
+
+  const consumed = dayEntries
+    .filter((entry) => entry.type === "meal")
+    .reduce((sum, entry) => sum + Number(entry.calories || 0), 0);
+
+  const exercise = dayEntries
+    .filter((entry) => entry.type === "exercise")
+    .reduce((sum, entry) => sum + Math.abs(Number(entry.calories || 0)), 0);
+
+  const protein = dayEntries
+    .filter((entry) => entry.type === "meal")
+    .reduce((sum, entry) => sum + Number(entry.protein_g || 0), 0);
+
+  const water = dayEntries
+    .filter((entry) => entry.type === "water")
+    .reduce((sum, entry) => sum + Number(entry.water_ml || 0), 0);
+
+  const net = consumed - exercise;
+
+  let score = 50;
+  const positives = [];
+  const negatives = [];
+
+  if (dayEntries.length > 0) {
+    score += 8;
+    positives.push("registrou o dia");
+  } else {
+    score -= 10;
+    negatives.push("sem registros");
+  }
+
+  if (net > 0 && net <= GOAL) {
+    score += 18;
+    positives.push("ficou dentro da meta");
+  }
+
+  if (net > GOAL + 300) {
+    score -= 22;
+    negatives.push("passou muito da meta");
+  } else if (net > GOAL) {
+    score -= 10;
+    negatives.push("passou um pouco da meta");
+  }
+
+  if (protein >= 130) {
+    score += 18;
+    positives.push("bateu ótima proteína");
+  } else if (protein >= 90) {
+    score += 10;
+    positives.push("proteína razoável");
+  } else if (dayEntries.length > 0) {
+    score -= 8;
+    negatives.push("proteína baixa");
+  }
+
+  if (water >= 2500) {
+    score += 12;
+    positives.push("boa hidratação");
+  } else if (water >= 1200) {
+    score += 5;
+    positives.push("hidratou um pouco");
+  } else if (dayEntries.length > 0) {
+    score -= 6;
+    negatives.push("pouca água");
+  }
+
+  if (exercise > 0) {
+    score += 10;
+    positives.push("treinou");
+  }
+
+  score = Math.max(0, Math.min(100, Math.round(score)));
+
+  return { key, score, consumed, exercise, protein, water, net, positives, negatives, count: dayEntries.length };
+}
+
+function petStatusFromScore(score) {
+  if (score >= 85) return { emoji: "🐉", name: "Dragão saudável", mood: "lendário", message: "Seu pet está evoluindo muito bem." };
+  if (score >= 70) return { emoji: "🦊", name: "Raposa focada", mood: "forte", message: "Boa semana. Continue alimentando boas práticas." };
+  if (score >= 55) return { emoji: "🐱", name: "Gato estável", mood: "ok", message: "Está indo, mas dá para melhorar proteína, água ou constância." };
+  if (score >= 40) return { emoji: "🐢", name: "Tartaruga cansada", mood: "fraco", message: "Seu pet precisa de mais consistência esta semana." };
+  return { emoji: "👻", name: "Pet faminto", mood: "crítico", message: "Muitas práticas ruins derrubaram o nível do pet." };
+}
+
 export default function Home() {
-  const [apiKey,setApiKey] = useState("");
+  const [apiKey,setApiKey] = useState("public-test");
   const [activePage,setActivePage] = useState("home");
   const [settingsOpen,setSettingsOpen] = useState(false);
   const [selectedDate,setSelectedDate] = useState(brazilDateKey());
@@ -134,13 +229,12 @@ export default function Home() {
   });
 
   useEffect(()=>{
-    setApiKey(localStorage.getItem("nutriclock_api_key")||"");
+    setApiKey("public-test");
     const timer=setInterval(()=>setClock(new Date()),1000);
     return ()=>clearInterval(timer);
   },[]);
 
   useEffect(()=>{
-    if(!apiKey){ setStatus("Configure a conexão no botão ⚙️"); return; }
     loadData();
     const timer=setInterval(loadData,15000);
     return ()=>clearInterval(timer);
@@ -149,7 +243,7 @@ export default function Home() {
   async function api(path,options={}) {
     const response=await fetch(path,{
       ...options,
-      headers:{...(options.headers||{}),"x-api-key":apiKey},
+      headers:{...(options.headers||{})},
       cache:"no-store"
     });
     const data=await response.json();
@@ -168,11 +262,6 @@ export default function Home() {
       setHistory(all.entries||[]);
       setStatus("Sincronizado");
     }catch(error){ setStatus(error.message); }
-  }
-
-  function saveKey(value){
-    setApiKey(value);
-    localStorage.setItem("nutriclock_api_key",value);
   }
 
   async function submit(event){
@@ -306,6 +395,28 @@ export default function Home() {
     weekday:"long",day:"2-digit",month:"long",year:"numeric"
   });
 
+  const petWeek = useMemo(() => {
+    const days = [];
+    for (let index = 6; index >= 0; index -= 1) {
+      const date = new Date();
+      date.setDate(date.getDate() - index);
+      const key = isoDate(date);
+      days.push(dayScore(history, key));
+    }
+
+    const average = days.length
+      ? Math.round(days.reduce((sum, day) => sum + day.score, 0) / days.length)
+      : 0;
+
+    const status = petStatusFromScore(average);
+    const level = Math.max(1, Math.floor(average / 10));
+    const xp = average;
+    const bestDay = [...days].sort((first, second) => second.score - first.score)[0];
+    const worstDay = [...days].sort((first, second) => first.score - second.score)[0];
+
+    return { days, average, status, level, xp, bestDay, worstDay };
+  }, [history]);
+
   return <main className="appShell">
     <header className="topbar">
       <div className="brand">
@@ -321,17 +432,17 @@ export default function Home() {
           <strong>{clock.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit",timeZone:"America/Sao_Paulo"})}</strong>
           <span>{clock.toLocaleDateString("pt-BR",{weekday:"long",day:"2-digit",month:"long",timeZone:"America/Sao_Paulo"})}</span>
         </div>
-        <button className="iconButton" onClick={()=>setSettingsOpen(true)}><Settings size={20}/></button>
+
       </div>
     </header>
 
-    <div className="syncPill">{status} • atualização a cada 15 segundos</div>
+    <div className="syncPill">{status} • modo de teste público • dados compartilhados</div>
 
     {activePage === "home" && (
       <>
         <section className="heroStats">
           <article><div className="statIcon flame"><Flame/></div><div><span>Consumidas</span><strong>{Math.round(totals.consumed)} kcal</strong></div></article>
-          <article><div className="statIcon exercise"><Dumbbell/></div><div><span>Exercício</span><strong>{Math.round(totals.exercise)} kcal</strong></div></article>
+          <article><div className="statIcon exercise"><Dumbbell/></div><div><span>Exercício</span><strong>{Math.abs(Math.round(totals.exercise))} kcal</strong></div></article>
           <article><div className="statIcon balance"><Scale/></div><div><span>Saldo líquido</span><strong>{Math.round(totals.net)} kcal</strong></div></article>
           <article><div className="statIcon remaining"><Flame/></div><div><span>Restantes</span><strong>{Math.round(totals.remaining)} kcal</strong></div></article>
         </section>
@@ -388,7 +499,7 @@ export default function Home() {
                   <div><strong>{entry.description}</strong><small>{new Date(entry.occurred_at).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit",timeZone:"America/Sao_Paulo"})} • {entry.source}</small></div>
                 </div>
                 <div className="entryActions">
-                  <b>{entry.type==="exercise"?"-":""}{Math.round(entry.calories||0)} kcal</b>
+                  <b>{displayEntryValue(entry)}</b>
                   <button onClick={()=>startEdit(entry)}><Pencil size={16}/></button>
                   <button onClick={()=>removeEntry(entry.id)}><Trash2 size={16}/></button>
                 </div>
@@ -434,7 +545,7 @@ export default function Home() {
 
               <div className="fieldGroup"><label>Data e horário (opcional)</label><input type="datetime-local" value={form.occurred_at} onChange={e=>setForm({...form,occurred_at:e.target.value})}/></div>
 
-              <button className="primaryButton" disabled={!apiKey}><Plus size={18}/>{editEntry?"Salvar alteração":"Registrar"}</button>
+              <button className="primaryButton" ><Plus size={18}/>{editEntry?"Salvar alteração":"Registrar"}</button>
             </form>
           </article>
         </section>
@@ -499,7 +610,7 @@ export default function Home() {
 
           <article className="panel">
             <div className="panelHeader"><div><h2>{dateLabel}</h2><p>{entries.length} registro(s)</p></div></div>
-            {entries.map(entry=><div className="entryRow" key={entry.id}><div className="entryMain"><div className="entryBadge">{entry.type==="meal"?"🍽️":"📝"}</div><div><strong>{entry.description}</strong><small>{Math.round(entry.calories||0)} kcal</small></div></div><div className="entryActions"><button onClick={()=>startEdit(entry)}><Pencil size={16}/></button><button onClick={()=>removeEntry(entry.id)}><Trash2 size={16}/></button></div></div>)}
+            {entries.map(entry=><div className="entryRow" key={entry.id}><div className="entryMain"><div className="entryBadge">{entry.type==="meal"?"🍽️":"📝"}</div><div><strong>{entry.description}</strong><small>{displayEntryValue(entry)}</small></div></div><div className="entryActions"><button onClick={()=>startEdit(entry)}><Pencil size={16}/></button><button onClick={()=>removeEntry(entry.id)}><Trash2 size={16}/></button></div></div>)}
           </article>
         </div>
       </section>
@@ -521,6 +632,106 @@ export default function Home() {
       </section>
     )}
 
+
+    {activePage === "pet" && (
+      <section className="pageSection">
+        <div className="petHero">
+          <div className="petCreature" aria-label="Bichinho virtual">
+            <span>{petWeek.status.emoji}</span>
+            <div className="petGlow" />
+          </div>
+
+          <div className="petHeroText">
+            <span className="pageEyebrow">Bichinho virtual</span>
+            <h2>{petWeek.status.name}</h2>
+            <p>{petWeek.status.message}</p>
+
+            <div className="petLevelRow">
+              <strong>Nível {petWeek.level}</strong>
+              <span>{petWeek.xp}/100 XP semanal</span>
+            </div>
+
+            <div className="petXpBar">
+              <span style={{ width: `${petWeek.xp}%` }} />
+            </div>
+          </div>
+        </div>
+
+        <section className="petRulesGrid">
+          <article className="panel petRule goodRule">
+            <ShieldCheck size={26}/>
+            <h3>Boas práticas alimentam o pet</h3>
+            <p>Ficar dentro da meta, bater proteína, beber água e treinar aumentam o nível.</p>
+          </article>
+
+          <article className="panel petRule badRule">
+            <AlertTriangle size={26}/>
+            <h3>Práticas ruins reduzem o nível</h3>
+            <p>Exagerar muito nas calorias, ficar sem registrar, pouca água e proteína baixa derrubam o humor.</p>
+          </article>
+
+          <article className="panel petRule">
+            <Sparkles size={26}/>
+            <h3>Meta da semana</h3>
+            <p>Termine a semana com média acima de 70 para manter o pet forte.</p>
+          </article>
+        </section>
+
+        <article className="panel petWeekPanel">
+          <div className="panelHeader">
+            <div>
+              <h2>Semana do pet</h2>
+              <p>Seu pet evolui com base nos últimos 7 dias.</p>
+            </div>
+            <strong className="petAverage">{petWeek.average}/100</strong>
+          </div>
+
+          <div className="petDays">
+            {petWeek.days.map((day) => (
+              <div className="petDay" key={day.key}>
+                <div className="petDayTop">
+                  <strong>{new Date(`${day.key}T12:00:00`).toLocaleDateString("pt-BR", { weekday: "short" }).replace(".", "")}</strong>
+                  <span>{day.score}</span>
+                </div>
+                <div className="petMiniBar"><span style={{ width: `${day.score}%` }} /></div>
+                <small>{Math.round(day.net)} kcal líquidas</small>
+              </div>
+            ))}
+          </div>
+        </article>
+
+        <section className="petDetailsGrid">
+          <article className="panel">
+            <h2>Melhor dia</h2>
+            {petWeek.bestDay && (
+              <>
+                <p className="petBigScore">{petWeek.bestDay.score}/100</p>
+                <p>{new Date(`${petWeek.bestDay.key}T12:00:00`).toLocaleDateString("pt-BR")}</p>
+                <ul className="petList goodList">
+                  {petWeek.bestDay.positives.map((item) => <li key={item}>{item}</li>)}
+                </ul>
+              </>
+            )}
+          </article>
+
+          <article className="panel">
+            <h2>Ponto de atenção</h2>
+            {petWeek.worstDay && (
+              <>
+                <p className="petBigScore">{petWeek.worstDay.score}/100</p>
+                <p>{new Date(`${petWeek.worstDay.key}T12:00:00`).toLocaleDateString("pt-BR")}</p>
+                <ul className="petList badList">
+                  {petWeek.worstDay.negatives.length
+                    ? petWeek.worstDay.negatives.map((item) => <li key={item}>{item}</li>)
+                    : <li>sem penalidades importantes</li>}
+                </ul>
+              </>
+            )}
+          </article>
+        </section>
+      </section>
+    )}
+
     {activePage === "profile" && (
       <section className="pageSection">
         <div className="pageHero"><div><span className="pageEyebrow">Perfil</span><h2>Metas e preferências</h2><p>Informações pessoais usadas no seu acompanhamento.</p></div><User size={48}/></div>
@@ -528,7 +739,7 @@ export default function Home() {
         <div className="profileGrid">
           <article className="panel profileInfo"><h2>Dados pessoais</h2><div><span>Nome</span><strong>Rafael</strong></div><div><span>Idade</span><strong>24 anos</strong></div><div><span>Altura</span><strong>170 cm</strong></div><div><span>Peso mais recente</span><strong>{totals.weight_kg?`${totals.weight_kg} kg`:"93,7 kg"}</strong></div></article>
           <article className="panel profileInfo"><h2>Metas atuais</h2><div><span>Calorias</span><strong>1.850 kcal</strong></div><div><span>Proteína</span><strong>160 g</strong></div><div><span>Água</span><strong>3.000 ml</strong></div><div><span>Cafeína</span><strong>400 mg</strong></div></article>
-          <article className="panel profileInfo"><h2>Preferências</h2><div><span>Objetivo</span><strong>Perder gordura</strong></div><div><span>Estimativas</span><strong>Conservadoras para cima</strong></div><div><span>Sincronização</span><strong>Automática</strong></div><button className="primaryButton" onClick={()=>setSettingsOpen(true)}><Settings size={18}/>Configurar conexão</button></article>
+          <article className="panel profileInfo"><h2>Preferências</h2><div><span>Objetivo</span><strong>Perder gordura</strong></div><div><span>Estimativas</span><strong>Conservadoras para cima</strong></div><div><span>Sincronização</span><strong>Automática</strong></div><div className="testNotice">Modo de teste: todos usam a mesma conta e os mesmos dados.</div></article>
         </div>
       </section>
     )}
@@ -538,17 +749,9 @@ export default function Home() {
       <button className={activePage==="recipes"?"active":""} onClick={()=>setActivePage("recipes")}><Utensils size={20}/><span>Receitas</span></button>
       <button className={activePage==="history"?"active":""} onClick={()=>setActivePage("history")}><History size={20}/><span>Histórico</span></button>
       <button className={activePage==="stats"?"active":""} onClick={()=>setActivePage("stats")}><BarChart3 size={20}/><span>Estatísticas</span></button>
+      <button className={activePage==="pet"?"active":""} onClick={()=>setActivePage("pet")}><Gamepad2 size={20}/><span>Pet</span></button>
       <button className={activePage==="profile"?"active":""} onClick={()=>setActivePage("profile")}><User size={20}/><span>Perfil</span></button>
     </nav>
 
-    {settingsOpen&&<div className="modalBackdrop" onClick={()=>setSettingsOpen(false)}>
-      <div className="settingsModal" onClick={e=>e.stopPropagation()}>
-        <div className="panelHeader"><div><h2>Configurações</h2><p>Conexão privada do aplicativo</p></div><button className="iconButton" onClick={()=>setSettingsOpen(false)}>✕</button></div>
-        <label>Chave privada do NutriClock</label>
-        <input type="password" value={apiKey} onChange={e=>saveKey(e.target.value)} placeholder="NUTRICLOCK_API_KEY"/>
-        <p className="muted">A chave fica somente neste navegador e não aparece no painel.</p>
-        <button className="primaryButton" onClick={()=>{setSettingsOpen(false);loadData()}}>Salvar e sincronizar</button>
-      </div>
-    </div>}
   </main>;
 }

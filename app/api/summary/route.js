@@ -43,7 +43,7 @@ export async function GET(request) {
         acc.fat_g += Number(entry.fat_g || 0);
         acc.fiber_g += Number(entry.fiber_g || 0);
       }
-      if (entry.type === "exercise") acc.exercise += Number(entry.calories || 0);
+      if (entry.type === "exercise") acc.exercise += Math.abs(Number(entry.calories || 0));
       if (entry.type === "water") acc.water_ml += Number(entry.water_ml || 0);
       if (entry.type === "caffeine") acc.caffeine_mg += Number(entry.caffeine_mg || 0);
       if (entry.type === "weight" && entry.weight_kg) acc.weight_kg = Number(entry.weight_kg);
