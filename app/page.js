@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Settings, ChevronLeft, ChevronRight, Flame, Dumbbell, Scale,
   Droplets, Coffee, Beef, Plus, Trash2, Pencil, CalendarDays,
-  Home, Utensils, BarChart3, User, History, Heart, ShoppingCart
+  Home as HomeIcon, Utensils, BarChart3, User, History, Heart, ShoppingCart
 } from "lucide-react";
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip,
@@ -534,7 +534,7 @@ export default function Home() {
     )}
 
     <nav className="bottomNav">
-      <button className={activePage==="home"?"active":""} onClick={()=>setActivePage("home")}><Home size={20}/><span>Início</span></button>
+      <button className={activePage==="home"?"active":""} onClick={()=>setActivePage("home")}><HomeIcon size={20}/><span>Início</span></button>
       <button className={activePage==="recipes"?"active":""} onClick={()=>setActivePage("recipes")}><Utensils size={20}/><span>Receitas</span></button>
       <button className={activePage==="history"?"active":""} onClick={()=>setActivePage("history")}><History size={20}/><span>Histórico</span></button>
       <button className={activePage==="stats"?"active":""} onClick={()=>setActivePage("stats")}><BarChart3 size={20}/><span>Estatísticas</span></button>
