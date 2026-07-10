@@ -341,3 +341,38 @@
   border-color:#ffc85735;
   background:#ffc85712;
 }
+
+
+/* v6.1.1 — estabilidade visual do teste público */
+.appShell{
+  padding-bottom:calc(250px + env(safe-area-inset-bottom)) !important;
+}
+.mainGrid,
+.pageSection{
+  margin-bottom:calc(120px + env(safe-area-inset-bottom));
+}
+.formPanel{
+  margin-bottom:calc(150px + env(safe-area-inset-bottom)) !important;
+}
+.formPanel form{
+  padding-bottom:calc(100px + env(safe-area-inset-bottom)) !important;
+}
+.bottomNav{
+  bottom:calc(10px + env(safe-area-inset-bottom)) !important;
+}
+.syncPill{
+  color:#ffd77d !important;
+  background:#ffc85712 !important;
+  border-color:#ffc85735 !important;
+}
+@media(max-width:560px){
+  .appShell{
+    padding-bottom:calc(290px + env(safe-area-inset-bottom)) !important;
+  }
+  .formPanel{
+    margin-bottom:calc(190px + env(safe-area-inset-bottom)) !important;
+  }
+  .formPanel form{
+    padding-bottom:calc(140px + env(safe-area-inset-bottom)) !important;
+  }
+}

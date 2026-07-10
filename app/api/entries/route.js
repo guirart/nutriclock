@@ -5,35 +5,63 @@ import { normalizeEntry, validateEntry } from "../../../lib/validation";
 
 export const dynamic = "force-dynamic";
 
+const FIXED_USER_ID = "rafael";
+
+function normalizeExerciseCalories(entry) {
+  if (entry?.type !== "exercise") return entry;
+
+  return {
+    ...entry,
+    calories: Math.abs(Number(entry.calories || 0))
+  };
+}
+
 export async function GET(request) {
   const authError = requireApiKey(request);
   if (authError) return authError;
 
   try {
     const { searchParams } = new URL(request.url);
-    const userId = searchParams.get("user_id") || process.env.NUTRICLOCK_USER_ID || "rafael";
     const date = searchParams.get("date");
-    const limit = Math.min(Number(searchParams.get("limit") || 500), 500);
+    const rawLimit = Number(searchParams.get("limit") || 500);
+    const limit = Number.isFinite(rawLimit)
+      ? Math.min(Math.max(rawLimit, 1), 500)
+      : 500;
 
     let query = getSupabaseAdmin()
       .from("nutrition_entries")
       .select("*")
-      .eq("user_id", userId)
+      .eq("user_id", FIXED_USER_ID)
       .order("occurred_at", { ascending: false })
       .limit(limit);
 
     if (date) {
       const start = new Date(`${date}T00:00:00-03:00`).toISOString();
       const end = new Date(`${date}T23:59:59.999-03:00`).toISOString();
-      query = query.gte("occurred_at", start).lte("occurred_at", end);
+
+      query = query
+        .gte("occurred_at", start)
+        .lte("occurred_at", end);
     }
 
     const { data, error } = await query;
     if (error) throw error;
 
-    return NextResponse.json({ entries: data });
+    return NextResponse.json({
+      success: true,
+      user_id: FIXED_USER_ID,
+      entries: data || []
+    });
   } catch (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("GET /api/entries:", error);
+
+    return NextResponse.json(
+      {
+        error: "Não foi possível carregar os registros.",
+        details: error.message
+      },
+      { status: 500 }
+    );
   }
 }
 
@@ -43,27 +71,56 @@ export async function POST(request) {
 
   try {
     const body = await request.json();
-    const entries = Array.isArray(body.entries) ? body.entries : [body];
-    const userId = body.user_id || process.env.NUTRICLOCK_USER_ID || "rafael";
+    const receivedEntries = Array.isArray(body.entries)
+      ? body.entries
+      : [body];
+
+    const entries = receivedEntries.map(normalizeExerciseCalories);
 
     const errors = entries.flatMap((entry, index) =>
-      validateEntry(entry).map((message) => `Registro ${index + 1}: ${message}`)
+      validateEntry(entry).map(
+        (message) => `Registro ${index + 1}: ${message}`
+      )
     );
 
-    if (errors.length) {
-      return NextResponse.json({ error: "Dados inválidos.", details: errors }, { status: 400 });
+    if (errors.length > 0) {
+      return NextResponse.json(
+        {
+          error: "Dados inválidos.",
+          details: errors
+        },
+        { status: 400 }
+      );
     }
 
-    const rows = entries.map((entry) => normalizeEntry(entry, userId));
+    const rows = entries.map((entry) =>
+      normalizeEntry(entry, FIXED_USER_ID)
+    );
+
     const { data, error } = await getSupabaseAdmin()
       .from("nutrition_entries")
       .insert(rows)
       .select();
 
     if (error) throw error;
-    return NextResponse.json({ success: true, entries: data }, { status: 201 });
+
+    return NextResponse.json(
+      {
+        success: true,
+        entries: data || []
+      },
+      { status: 201 }
+    );
   } catch (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("POST /api/entries:", error);
+
+    return NextResponse.json(
+      {
+        error: "Não foi possível criar o registro.",
+        details: error.message
+      },
+      { status: 500 }
+    );
   }
 }
 
@@ -74,29 +131,66 @@ export async function PATCH(request) {
   try {
     const body = await request.json();
     const { id, ...changes } = body;
-    if (!id) return NextResponse.json({ error: "id obrigatório." }, { status: 400 });
+
+    if (!id) {
+      return NextResponse.json(
+        { error: "id obrigatório." },
+        { status: 400 }
+      );
+    }
 
     const allowed = [
-      "type","description","calories","protein_g","carbs_g","fat_g",
-      "fiber_g","water_ml","caffeine_mg","weight_kg","confidence",
-      "notes","source","occurred_at"
+      "type",
+      "description",
+      "calories",
+      "protein_g",
+      "carbs_g",
+      "fat_g",
+      "fiber_g",
+      "water_ml",
+      "caffeine_mg",
+      "weight_kg",
+      "confidence",
+      "notes",
+      "source",
+      "occurred_at"
     ];
 
     const update = Object.fromEntries(
-      Object.entries(changes).filter(([key]) => allowed.includes(key))
+      Object.entries(changes).filter(([key]) =>
+        allowed.includes(key)
+      )
     );
+
+    const currentType = update.type || changes.type;
+    if (currentType === "exercise" && "calories" in update) {
+      update.calories = Math.abs(Number(update.calories || 0));
+    }
 
     const { data, error } = await getSupabaseAdmin()
       .from("nutrition_entries")
       .update(update)
       .eq("id", id)
+      .eq("user_id", FIXED_USER_ID)
       .select()
       .single();
 
     if (error) throw error;
-    return NextResponse.json({ success: true, entry: data });
+
+    return NextResponse.json({
+      success: true,
+      entry: data
+    });
   } catch (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("PATCH /api/entries:", error);
+
+    return NextResponse.json(
+      {
+        error: "Não foi possível atualizar o registro.",
+        details: error.message
+      },
+      { status: 500 }
+    );
   }
 }
 
@@ -106,16 +200,32 @@ export async function DELETE(request) {
 
   try {
     const id = new URL(request.url).searchParams.get("id");
-    if (!id) return NextResponse.json({ error: "id obrigatório." }, { status: 400 });
+
+    if (!id) {
+      return NextResponse.json(
+        { error: "id obrigatório." },
+        { status: 400 }
+      );
+    }
 
     const { error } = await getSupabaseAdmin()
       .from("nutrition_entries")
       .delete()
-      .eq("id", id);
+      .eq("id", id)
+      .eq("user_id", FIXED_USER_ID);
 
     if (error) throw error;
+
     return NextResponse.json({ success: true });
   } catch (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("DELETE /api/entries:", error);
+
+    return NextResponse.json(
+      {
+        error: "Não foi possível excluir o registro.",
+        details: error.message
+      },
+      { status: 500 }
+    );
   }
 }

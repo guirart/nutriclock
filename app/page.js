@@ -220,7 +220,7 @@ export default function Home() {
   const [calendarMonth,setCalendarMonth] = useState(new Date());
   const [summary,setSummary] = useState(null);
   const [history,setHistory] = useState([]);
-  const [status,setStatus] = useState("Conectando...");
+  const [status,setStatus] = useState("Modo de teste público ativo");
   const [clock,setClock] = useState(new Date());
   const [editEntry,setEditEntry] = useState(null);
   const [form,setForm] = useState({
@@ -236,8 +236,9 @@ export default function Home() {
 
   useEffect(()=>{
     loadData();
+    const retry=setTimeout(loadData,2500);
     const timer=setInterval(loadData,15000);
-    return ()=>clearInterval(timer);
+    return ()=>{clearTimeout(retry);clearInterval(timer);};
   },[apiKey,selectedDate,calendarMonth]);
 
   async function api(path,options={}) {
@@ -261,7 +262,7 @@ export default function Home() {
       setSummary(daily);
       setHistory(all.entries||[]);
       setStatus("Sincronizado");
-    }catch(error){ setStatus(error.message); }
+    }catch(error){ setStatus(`Falha ao sincronizar: ${error.message}`); }
   }
 
   async function submit(event){
@@ -436,7 +437,7 @@ export default function Home() {
       </div>
     </header>
 
-    <div className="syncPill">{status} • modo de teste público • dados compartilhados</div>
+    <div className="syncPill">🧪 {status} • dados compartilhados</div>
 
     {activePage === "home" && (
       <>
