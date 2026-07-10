@@ -10,13 +10,12 @@ export async function GET(request) {
   if (authError) return authError;
 
   try {
-    const supabase = getSupabaseAdmin();
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get("user_id") || process.env.NUTRICLOCK_USER_ID || "rafael";
     const date = searchParams.get("date");
-    const limit = Math.min(Number(searchParams.get("limit") || 100), 500);
+    const limit = Math.min(Number(searchParams.get("limit") || 500), 500);
 
-    let query = supabase
+    let query = getSupabaseAdmin()
       .from("nutrition_entries")
       .select("*")
       .eq("user_id", userId)
@@ -50,13 +49,13 @@ export async function POST(request) {
     const errors = entries.flatMap((entry, index) =>
       validateEntry(entry).map((message) => `Registro ${index + 1}: ${message}`)
     );
+
     if (errors.length) {
       return NextResponse.json({ error: "Dados inválidos.", details: errors }, { status: 400 });
     }
 
     const rows = entries.map((entry) => normalizeEntry(entry, userId));
-    const supabase = getSupabaseAdmin();
-    const { data, error } = await supabase
+    const { data, error } = await getSupabaseAdmin()
       .from("nutrition_entries")
       .insert(rows)
       .select();
@@ -68,25 +67,6 @@ export async function POST(request) {
   }
 }
 
-export async function DELETE(request) {
-  const authError = requireApiKey(request);
-  if (authError) return authError;
-
-  try {
-    const { searchParams } = new URL(request.url);
-    const id = searchParams.get("id");
-    if (!id) return NextResponse.json({ error: "id obrigatório." }, { status: 400 });
-
-    const supabase = getSupabaseAdmin();
-    const { error } = await supabase.from("nutrition_entries").delete().eq("id", id);
-    if (error) throw error;
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-}
-
-
 export async function PATCH(request) {
   const authError = requireApiKey(request);
   if (authError) return authError;
@@ -94,27 +74,19 @@ export async function PATCH(request) {
   try {
     const body = await request.json();
     const { id, ...changes } = body;
-
-    if (!id) {
-      return NextResponse.json({ error: "id obrigatório." }, { status: 400 });
-    }
+    if (!id) return NextResponse.json({ error: "id obrigatório." }, { status: 400 });
 
     const allowed = [
-      "type", "description", "calories", "protein_g", "carbs_g", "fat_g",
-      "fiber_g", "water_ml", "caffeine_mg", "weight_kg", "confidence",
-      "notes", "source", "occurred_at"
+      "type","description","calories","protein_g","carbs_g","fat_g",
+      "fiber_g","water_ml","caffeine_mg","weight_kg","confidence",
+      "notes","source","occurred_at"
     ];
 
     const update = Object.fromEntries(
       Object.entries(changes).filter(([key]) => allowed.includes(key))
     );
 
-    if (!Object.keys(update).length) {
-      return NextResponse.json({ error: "Nenhum campo válido para atualizar." }, { status: 400 });
-    }
-
-    const supabase = getSupabaseAdmin();
-    const { data, error } = await supabase
+    const { data, error } = await getSupabaseAdmin()
       .from("nutrition_entries")
       .update(update)
       .eq("id", id)
@@ -123,6 +95,26 @@ export async function PATCH(request) {
 
     if (error) throw error;
     return NextResponse.json({ success: true, entry: data });
+  } catch (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+export async function DELETE(request) {
+  const authError = requireApiKey(request);
+  if (authError) return authError;
+
+  try {
+    const id = new URL(request.url).searchParams.get("id");
+    if (!id) return NextResponse.json({ error: "id obrigatório." }, { status: 400 });
+
+    const { error } = await getSupabaseAdmin()
+      .from("nutrition_entries")
+      .delete()
+      .eq("id", id);
+
+    if (error) throw error;
+    return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

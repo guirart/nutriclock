@@ -1,16 +1,11 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "NutriClock Cloud",
-  description: "Diário sincronizado de dieta e treino",
-  manifest: "/manifest.webmanifest",
-  appleWebApp: { capable: true, title: "NutriClock", statusBarStyle: "black-translucent" }
+  title: "NutriClock",
+  description: "Acompanhamento nutricional inteligente",
+  manifest: "/manifest.webmanifest"
 };
 
 export default function RootLayout({ children }) {
-  return (
-    <html lang="pt-BR">
-      <body>{children}</body>
-    </html>
-  );
+  return <html lang="pt-BR"><body>{children}</body></html>;
 }
