@@ -220,7 +220,7 @@ export default function Home() {
   const [calendarMonth,setCalendarMonth] = useState(new Date());
   const [summary,setSummary] = useState(null);
   const [history,setHistory] = useState([]);
-  const [status,setStatus] = useState("Modo de teste público ativo");
+  const [status,setStatus] = useState("Sincronizando...");
   const [clock,setClock] = useState(new Date());
   const [editEntry,setEditEntry] = useState(null);
   const [form,setForm] = useState({
@@ -262,7 +262,7 @@ export default function Home() {
       setSummary(daily);
       setHistory(all.entries||[]);
       setStatus("Sincronizado");
-    }catch(error){ setStatus(`Falha ao sincronizar: ${error.message}`); }
+    }catch(error){ console.error(error); setStatus("Falha ao sincronizar os dados"); }
   }
 
   async function submit(event){
@@ -437,7 +437,7 @@ export default function Home() {
       </div>
     </header>
 
-    <div className="syncPill">🧪 {status} • dados compartilhados</div>
+    <div className="syncPill">🧪 Modo de teste público ativo • dados compartilhados</div>
 
     {activePage === "home" && (
       <>

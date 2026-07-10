@@ -1,26 +1,28 @@
-# NutriClock v6.2 — versão estável para GitHub
+# NutriClock v6.2.1 — público sem autorização
 
-Correções:
-- usuário fixo `rafael` em GET, POST, PATCH, DELETE e summary;
-- registros antigos voltam a aparecer no calendário, histórico e cards;
-- exercícios sempre são tratados como gasto positivo internamente;
-- saldo líquido calculado corretamente;
-- datas filtradas no fuso de Brasília;
-- modo público sem exigir chave no navegador;
-- mantém receitas, histórico, estatísticas, perfil e pet virtual.
+Esta versão removeu completamente a verificação de API Key dos endpoints:
+- GET/POST/PATCH/DELETE /api/entries
+- GET /api/summary
 
-## Publicação
+Também removeu o cabeçalho de autenticação do frontend.
 
-1. Extraia este ZIP.
-2. Envie TODO o conteúdo para a raiz do repositório GitHub.
-3. Substitua os arquivos existentes.
-4. Faça o commit.
-5. Aguarde o deploy automático da Vercel.
+Como publicar corretamente:
+1. Extraia o ZIP.
+2. Entre na pasta extraída.
+3. Envie o CONTEÚDO da pasta para a raiz do repositório.
+4. Não envie a pasta externa como uma pasta dentro do GitHub.
+5. Confirme que estes arquivos foram substituídos:
+   - app/api/entries/route.js
+   - app/api/summary/route.js
+   - app/page.js
+   - package.json
+6. Faça commit.
+7. Na Vercel, abra Deployments e clique em Redeploy no commit novo.
 
-Não é necessário alterar nenhum arquivo manualmente.
+Teste após o deploy:
+- https://nutriclock.vercel.app/api/entries?limit=5
+- https://nutriclock.vercel.app/api/summary
 
-Variáveis que devem continuar na Vercel:
-- SUPABASE_URL
-- SUPABASE_SERVICE_ROLE_KEY
+Nenhum dos dois endpoints deve responder “Não autorizado”.
 
-A variável NUTRICLOCK_USER_ID deixa de ser usada nesta versão.
+Aviso: todos os usuários compartilham os mesmos dados nesta edição.

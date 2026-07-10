@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { requireApiKey } from "../../../lib/auth";
 import { getSupabaseAdmin } from "../../../lib/supabaseAdmin";
 
 export const dynamic = "force-dynamic";
@@ -17,8 +16,6 @@ function todayBrazil() {
 }
 
 export async function GET(request) {
-  const authError = requireApiKey(request);
-  if (authError) return authError;
 
   try {
     const { searchParams } = new URL(request.url);

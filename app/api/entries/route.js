@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { requireApiKey } from "../../../lib/auth";
 import { getSupabaseAdmin } from "../../../lib/supabaseAdmin";
 import { normalizeEntry, validateEntry } from "../../../lib/validation";
 
@@ -17,8 +16,6 @@ function normalizeExerciseCalories(entry) {
 }
 
 export async function GET(request) {
-  const authError = requireApiKey(request);
-  if (authError) return authError;
 
   try {
     const { searchParams } = new URL(request.url);
@@ -66,8 +63,6 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
-  const authError = requireApiKey(request);
-  if (authError) return authError;
 
   try {
     const body = await request.json();
@@ -125,8 +120,6 @@ export async function POST(request) {
 }
 
 export async function PATCH(request) {
-  const authError = requireApiKey(request);
-  if (authError) return authError;
 
   try {
     const body = await request.json();
@@ -195,8 +188,6 @@ export async function PATCH(request) {
 }
 
 export async function DELETE(request) {
-  const authError = requireApiKey(request);
-  if (authError) return authError;
 
   try {
     const id = new URL(request.url).searchParams.get("id");

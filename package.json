@@ -1,6 +1,6 @@
 {
-  "name": "nutriclock-v6-2-estavel",
-  "version": "6.2.0",
+  "name": "nutriclock-v6-2-1-public-no-auth",
+  "version": "6.2.1",
   "private": true,
   "scripts": {
     "dev": "next dev",
