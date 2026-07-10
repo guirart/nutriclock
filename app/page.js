@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   Settings, ChevronLeft, ChevronRight, Flame, Dumbbell, Scale,
-  Droplets, Coffee, Beef, Plus, Trash2, Pencil, CalendarDays
+  Droplets, Coffee, Beef, Plus, Trash2, Pencil, CalendarDays,
+  Home, Utensils, BarChart3, User, History, Heart, ShoppingCart
 } from "lucide-react";
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip,
@@ -11,6 +12,81 @@ import {
 } from "recharts";
 
 const GOAL = 1850;
+
+const RECIPES = [
+  {
+    id: "omelete-frango",
+    name: "Omelete proteico com frango",
+    calories: 360,
+    protein: 42,
+    time: "15 min",
+    ingredients: ["2 ovos", "100 g de frango desfiado", "Tomate", "Cebola", "Temperos"],
+    steps: ["Bata os ovos.", "Misture o frango e os vegetais.", "Cozinhe em frigideira antiaderente."]
+  },
+  {
+    id: "bowl-frango-arroz",
+    name: "Bowl de frango, arroz e feijão",
+    calories: 520,
+    protein: 46,
+    time: "20 min",
+    ingredients: ["120 g de peito de frango", "100 g de arroz cozido", "70 g de feijão", "Salada"],
+    steps: ["Grelhe o frango.", "Monte o prato com arroz e feijão.", "Complete com salada."]
+  },
+  {
+    id: "tapioca-frango",
+    name: "Tapioca com frango e queijo",
+    calories: 430,
+    protein: 35,
+    time: "12 min",
+    ingredients: ["60 g de goma de tapioca", "100 g de frango", "25 g de queijo", "Tomate"],
+    steps: ["Prepare a tapioca.", "Recheie com frango, queijo e tomate.", "Dobre e aqueça por mais 1 minuto."]
+  },
+  {
+    id: "iogurte-frutas",
+    name: "Iogurte proteico com frutas",
+    calories: 260,
+    protein: 20,
+    time: "5 min",
+    ingredients: ["1 iogurte proteico", "1 banana pequena", "Morangos", "10 g de aveia"],
+    steps: ["Corte as frutas.", "Misture com o iogurte.", "Finalize com aveia."]
+  },
+  {
+    id: "sanduiche-atum",
+    name: "Sanduíche de atum",
+    calories: 390,
+    protein: 32,
+    time: "10 min",
+    ingredients: ["2 fatias de pão integral", "1 lata de atum em água", "Folhas", "Tomate", "1 colher de creme de ricota"],
+    steps: ["Misture o atum com o creme de ricota.", "Monte o sanduíche.", "Adicione folhas e tomate."]
+  },
+  {
+    id: "salada-frango",
+    name: "Salada completa com frango",
+    calories: 310,
+    protein: 38,
+    time: "15 min",
+    ingredients: ["120 g de frango", "Folhas", "Tomate", "Pepino", "Milho", "Molho leve"],
+    steps: ["Grelhe o frango.", "Monte a salada.", "Adicione o molho apenas ao servir."]
+  },
+  {
+    id: "prato-carne-pure",
+    name: "Carne magra com purê e legumes",
+    calories: 610,
+    protein: 45,
+    time: "30 min",
+    ingredients: ["140 g de carne magra", "150 g de purê de batata", "Legumes cozidos"],
+    steps: ["Grelhe a carne.", "Prepare o purê.", "Sirva com os legumes."]
+  },
+  {
+    id: "panqueca-banana",
+    name: "Panqueca de banana e aveia",
+    calories: 330,
+    protein: 18,
+    time: "12 min",
+    ingredients: ["1 banana", "2 ovos", "25 g de aveia", "Canela"],
+    steps: ["Amasse a banana.", "Misture com ovos e aveia.", "Doure dos dois lados."]
+  }
+];
 
 function brazilDateKey(date = new Date()) {
   return new Intl.DateTimeFormat("en-CA", {
@@ -43,6 +119,7 @@ function Progress({ value, max }) {
 
 export default function Home() {
   const [apiKey,setApiKey] = useState("");
+  const [activePage,setActivePage] = useState("home");
   const [settingsOpen,setSettingsOpen] = useState(false);
   const [selectedDate,setSelectedDate] = useState(brazilDateKey());
   const [calendarMonth,setCalendarMonth] = useState(new Date());
@@ -197,6 +274,34 @@ export default function Home() {
       weight:Number(e.weight_kg)
     })),[history]);
 
+
+  const recommendedRecipes = useMemo(() => {
+    const remaining = Math.max(0, Number(totals.remaining || 0));
+
+    if (remaining <= 0) {
+      return RECIPES
+        .filter((recipe) => recipe.calories <= 320)
+        .slice(0, 3);
+    }
+
+    const lowerBound = Math.max(180, remaining * 0.35);
+    const upperBound = Math.max(320, remaining * 0.85);
+
+    const matching = RECIPES
+      .filter((recipe) => recipe.calories >= lowerBound && recipe.calories <= upperBound)
+      .sort((first, second) => second.protein - first.protein);
+
+    if (matching.length >= 3) return matching.slice(0, 3);
+
+    return [...RECIPES]
+      .sort((first, second) => {
+        const firstDistance = Math.abs(first.calories - Math.min(remaining, 600));
+        const secondDistance = Math.abs(second.calories - Math.min(remaining, 600));
+        return firstDistance - secondDistance || second.protein - first.protein;
+      })
+      .slice(0, 3);
+  }, [totals.remaining]);
+
   const dateLabel=new Date(`${selectedDate}T12:00:00`).toLocaleDateString("pt-BR",{
     weekday:"long",day:"2-digit",month:"long",year:"numeric"
   });
@@ -205,8 +310,12 @@ export default function Home() {
     <header className="topbar">
       <div className="brand">
         <div className="brandIcon">⏱️</div>
-        <div><h1>NutriClock</h1><p>Seu painel nutricional inteligente</p></div>
+        <div>
+          <h1>NutriClock</h1>
+          <p>Seu painel nutricional inteligente</p>
+        </div>
       </div>
+
       <div className="topActions">
         <div className="liveClock">
           <strong>{clock.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit",timeZone:"America/Sao_Paulo"})}</strong>
@@ -218,200 +327,219 @@ export default function Home() {
 
     <div className="syncPill">{status} • atualização a cada 15 segundos</div>
 
-    <section className="heroStats">
-      <article><div className="statIcon flame"><Flame/></div><div><span>Consumidas</span><strong>{Math.round(totals.consumed)} kcal</strong></div></article>
-      <article><div className="statIcon exercise"><Dumbbell/></div><div><span>Exercício</span><strong>{Math.round(totals.exercise)} kcal</strong></div></article>
-      <article><div className="statIcon balance"><Scale/></div><div><span>Saldo líquido</span><strong>{Math.round(totals.net)} kcal</strong></div></article>
-      <article><div className="statIcon remaining"><Flame/></div><div><span>Restantes</span><strong>{Math.round(totals.remaining)} kcal</strong></div></article>
-    </section>
+    {activePage === "home" && (
+      <>
+        <section className="heroStats">
+          <article><div className="statIcon flame"><Flame/></div><div><span>Consumidas</span><strong>{Math.round(totals.consumed)} kcal</strong></div></article>
+          <article><div className="statIcon exercise"><Dumbbell/></div><div><span>Exercício</span><strong>{Math.round(totals.exercise)} kcal</strong></div></article>
+          <article><div className="statIcon balance"><Scale/></div><div><span>Saldo líquido</span><strong>{Math.round(totals.net)} kcal</strong></div></article>
+          <article><div className="statIcon remaining"><Flame/></div><div><span>Restantes</span><strong>{Math.round(totals.remaining)} kcal</strong></div></article>
+        </section>
 
-    <section className="mainGrid">
-      <article className="panel calendarPanel">
-        <div className="panelHeader">
-          <div><h2><CalendarDays size={20}/> Calendário</h2><p>Selecione um dia para consultar</p></div>
-          <div className="monthNav">
-            <button onClick={()=>setCalendarMonth(new Date(calendarMonth.getFullYear(),calendarMonth.getMonth()-1,1))}><ChevronLeft size={18}/></button>
-            <strong>{calendarMonth.toLocaleDateString("pt-BR",{month:"long",year:"numeric"})}</strong>
-            <button onClick={()=>setCalendarMonth(new Date(calendarMonth.getFullYear(),calendarMonth.getMonth()+1,1))}><ChevronRight size={18}/></button>
-          </div>
-        </div>
-        <div className="weekHeader">{["Seg","Ter","Qua","Qui","Sex","Sáb","Dom"].map(d=><span key={d}>{d}</span>)}</div>
-        <div className="calendarGrid">
-          {calendarCells(calendarMonth).map((date,index)=>{
-            if(!date) return <div className="calendarBlank" key={`blank-${index}`}/>;
-            const key=isoDate(date), calories=monthCalories[key]||0;
-            return <button key={key} className={`calendarDay ${key===selectedDate?"active":""} ${key===brazilDateKey()?"today":""}`} onClick={()=>setSelectedDate(key)}>
-              <span>{date.getDate()}</span>
-              {calories>0&&<small>{Math.round(calories)} kcal</small>}
-            </button>;
-          })}
-        </div>
-      </article>
-
-      <article className="panel overviewPanel">
-        <div className="panelHeader"><div><h2>{dateLabel}</h2><p>Visão geral do dia</p></div></div>
-        <div className="metric"><div><Beef size={18}/><span>Proteína</span></div><strong>{Math.round(totals.protein_g)} / 160 g</strong></div>
-        <Progress value={totals.protein_g} max={160}/>
-        <div className="metric"><div><Droplets size={18}/><span>Água</span></div><strong>{Math.round(totals.water_ml)} / 3000 ml</strong></div>
-        <Progress value={totals.water_ml} max={3000}/>
-        <div className="metric"><div><Coffee size={18}/><span>Cafeína</span></div><strong>{Math.round(totals.caffeine_mg)} / 400 mg</strong></div>
-        <Progress value={totals.caffeine_mg} max={400}/>
-        <div className="metric"><div><Scale size={18}/><span>Peso</span></div><strong>{totals.weight_kg?`${totals.weight_kg} kg`:"sem registro"}</strong></div>
-        <button onClick={loadData}>Atualizar agora</button>
-      </article>
-
-      <article className="panel widePanel">
-        <div className="panelHeader"><div><h2>Calorias nos últimos 7 dias</h2><p>A linha amarela marca sua meta diária</p></div></div>
-        <div className="chartBox">
-          <ResponsiveContainer width="100%" height={290}>
-            <BarChart data={last7}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10"/>
-              <XAxis dataKey="label" stroke="#9eb0c7"/>
-              <YAxis stroke="#9eb0c7"/>
-              <Tooltip contentStyle={{background:"#0e1d31",border:"1px solid #ffffff20",borderRadius:12}}/>
-              <ReferenceLine y={GOAL} stroke="#ffc857" strokeDasharray="6 6"/>
-              <Bar dataKey="calories" fill="#62a6ff" radius={[8,8,0,0]}/>
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </article>
-
-      <article className="panel widePanel">
-        <div className="panelHeader"><div><h2>Evolução do peso</h2><p>Últimos registros disponíveis</p></div></div>
-        <div className="chartBox">
-          {weightData.length ? <ResponsiveContainer width="100%" height={280}>
-            <LineChart data={weightData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10"/>
-              <XAxis dataKey="label" stroke="#9eb0c7"/>
-              <YAxis stroke="#9eb0c7" domain={["dataMin - 1","dataMax + 1"]}/>
-              <Tooltip contentStyle={{background:"#0e1d31",border:"1px solid #ffffff20",borderRadius:12}}/>
-              <Line type="monotone" dataKey="weight" stroke="#58e0b0" strokeWidth={4} dot={{r:5}}/>
-            </LineChart>
-          </ResponsiveContainer> : <p className="emptyState">Registre seu peso para começar o gráfico.</p>}
-        </div>
-      </article>
-
-      <article className="panel entriesPanel">
-        <div className="panelHeader"><div><h2>Registros do dia</h2><p>{entries.length} item(ns)</p></div></div>
-        <div className="entryList">
-          {!entries.length&&<p className="emptyState">Nenhum registro neste dia.</p>}
-          {entries.map(entry=><div className="entryRow" key={entry.id}>
-            <div className="entryMain">
-              <div className={`entryBadge ${entry.type}`}>{entry.type==="meal"?"🍽️":entry.type==="exercise"?"🏃":entry.type==="water"?"💧":entry.type==="caffeine"?"☕":"⚖️"}</div>
-              <div><strong>{entry.description}</strong><small>{new Date(entry.occurred_at).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit",timeZone:"America/Sao_Paulo"})} • {entry.source}</small></div>
+        <section className="mainGrid">
+          <article className="panel calendarPanel">
+            <div className="panelHeader">
+              <div><h2><CalendarDays size={20}/> Calendário</h2><p>Selecione um dia para consultar</p></div>
+              <div className="monthNav">
+                <button onClick={()=>setCalendarMonth(new Date(calendarMonth.getFullYear(),calendarMonth.getMonth()-1,1))}><ChevronLeft size={18}/></button>
+                <strong>{calendarMonth.toLocaleDateString("pt-BR",{month:"long",year:"numeric"})}</strong>
+                <button onClick={()=>setCalendarMonth(new Date(calendarMonth.getFullYear(),calendarMonth.getMonth()+1,1))}><ChevronRight size={18}/></button>
+              </div>
             </div>
-            <div className="entryActions">
-              <b>{entry.type==="exercise"?"-":""}{Math.round(entry.calories||0)} kcal</b>
-              <button onClick={()=>startEdit(entry)}><Pencil size={16}/></button>
-              <button onClick={()=>removeEntry(entry.id)}><Trash2 size={16}/></button>
-            </div>
-          </div>)}
-        </div>
-      </article>
 
-      <article className="panel formPanel">
-        <div className="panelHeader">
+            <div className="weekHeader">{["Seg","Ter","Qua","Qui","Sex","Sáb","Dom"].map(d=><span key={d}>{d}</span>)}</div>
+
+            <div className="calendarGrid">
+              {calendarCells(calendarMonth).map((date,index)=>{
+                if(!date) return <div className="calendarBlank" key={`blank-${index}`}/>;
+                const key=isoDate(date), calories=monthCalories[key]||0;
+                return <button key={key} className={`calendarDay ${key===selectedDate?"active":""} ${key===brazilDateKey()?"today":""}`} onClick={()=>setSelectedDate(key)}>
+                  <span>{date.getDate()}</span>
+                  {calories>0&&<small>{Math.round(calories)} kcal</small>}
+                </button>;
+              })}
+            </div>
+          </article>
+
+          <article className="panel overviewPanel">
+            <div className="panelHeader"><div><h2>{dateLabel}</h2><p>Visão geral do dia</p></div></div>
+
+            <div className="metric"><div><Beef size={18}/><span>Proteína</span></div><strong>{Math.round(totals.protein_g)} / 160 g</strong></div>
+            <Progress value={totals.protein_g} max={160}/>
+
+            <div className="metric"><div><Droplets size={18}/><span>Água</span></div><strong>{Math.round(totals.water_ml)} / 3000 ml</strong></div>
+            <Progress value={totals.water_ml} max={3000}/>
+
+            <div className="metric"><div><Coffee size={18}/><span>Cafeína</span></div><strong>{Math.round(totals.caffeine_mg)} / 400 mg</strong></div>
+            <Progress value={totals.caffeine_mg} max={400}/>
+
+            <div className="metric"><div><Scale size={18}/><span>Peso</span></div><strong>{totals.weight_kg?`${totals.weight_kg} kg`:"sem registro"}</strong></div>
+
+            <button onClick={loadData}>Atualizar agora</button>
+          </article>
+
+          <article className="panel entriesPanel">
+            <div className="panelHeader"><div><h2>Registros do dia</h2><p>{entries.length} item(ns)</p></div></div>
+            <div className="entryList">
+              {!entries.length&&<p className="emptyState">Nenhum registro neste dia.</p>}
+              {entries.map(entry=><div className="entryRow" key={entry.id}>
+                <div className="entryMain">
+                  <div className={`entryBadge ${entry.type}`}>{entry.type==="meal"?"🍽️":entry.type==="exercise"?"🏃":entry.type==="water"?"💧":entry.type==="caffeine"?"☕":"⚖️"}</div>
+                  <div><strong>{entry.description}</strong><small>{new Date(entry.occurred_at).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit",timeZone:"America/Sao_Paulo"})} • {entry.source}</small></div>
+                </div>
+                <div className="entryActions">
+                  <b>{entry.type==="exercise"?"-":""}{Math.round(entry.calories||0)} kcal</b>
+                  <button onClick={()=>startEdit(entry)}><Pencil size={16}/></button>
+                  <button onClick={()=>removeEntry(entry.id)}><Trash2 size={16}/></button>
+                </div>
+              </div>)}
+            </div>
+          </article>
+
+          <article className="panel formPanel">
+            <div className="panelHeader">
+              <div>
+                <h2>{editEntry?"Editar registro":"Novo registro"}</h2>
+                <p>{editEntry?"Ajuste os valores":"Preencha somente o necessário"}</p>
+              </div>
+              {editEntry&&<button className="ghostButton" onClick={()=>{setEditEntry(null);setForm({type:"meal",description:"",calories:0,protein_g:0,water_ml:0,caffeine_mg:0,weight_kg:"",occurred_at:""})}}>Cancelar</button>}
+            </div>
+
+            <form onSubmit={submit} className="guidedForm">
+              <div className="fieldGroup">
+                <label>Tipo de registro</label>
+                <select value={form.type} onChange={e=>setForm({...form,type:e.target.value})}>
+                  <option value="meal">🍽️ Refeição</option>
+                  <option value="exercise">🏃 Exercício</option>
+                  <option value="water">💧 Água</option>
+                  <option value="caffeine">☕ Cafeína</option>
+                  <option value="weight">⚖️ Peso</option>
+                </select>
+              </div>
+
+              <div className="fieldGroup">
+                <label>Descrição</label>
+                <input required placeholder="Ex.: arroz, feijão e frango" value={form.description} onChange={e=>setForm({...form,description:e.target.value})}/>
+              </div>
+
+              {form.type==="meal"&&<div className="formGrid">
+                <div className="fieldGroup"><label>Calorias</label><input type="number" value={form.calories} onChange={e=>setForm({...form,calories:e.target.value})}/></div>
+                <div className="fieldGroup"><label>Proteína (g)</label><input type="number" value={form.protein_g} onChange={e=>setForm({...form,protein_g:e.target.value})}/></div>
+              </div>}
+
+              {form.type==="exercise"&&<div className="fieldGroup"><label>Calorias gastas</label><input type="number" value={form.calories} onChange={e=>setForm({...form,calories:e.target.value})}/></div>}
+              {form.type==="water"&&<div className="fieldGroup"><label>Quantidade (ml)</label><input type="number" value={form.water_ml} onChange={e=>setForm({...form,water_ml:e.target.value})}/></div>}
+              {form.type==="caffeine"&&<div className="fieldGroup"><label>Cafeína (mg)</label><input type="number" value={form.caffeine_mg} onChange={e=>setForm({...form,caffeine_mg:e.target.value})}/></div>}
+              {form.type==="weight"&&<div className="fieldGroup"><label>Peso (kg)</label><input type="number" step="0.1" value={form.weight_kg} onChange={e=>setForm({...form,weight_kg:e.target.value})}/></div>}
+
+              <div className="fieldGroup"><label>Data e horário (opcional)</label><input type="datetime-local" value={form.occurred_at} onChange={e=>setForm({...form,occurred_at:e.target.value})}/></div>
+
+              <button className="primaryButton" disabled={!apiKey}><Plus size={18}/>{editEntry?"Salvar alteração":"Registrar"}</button>
+            </form>
+          </article>
+        </section>
+      </>
+    )}
+
+    {activePage === "recipes" && (
+      <section className="pageSection">
+        <div className="pageHero">
           <div>
-            <h2>{editEntry ? "Editar registro" : "Novo registro"}</h2>
-            <p>{editEntry ? "Ajuste apenas o que estiver errado" : "Escolha o tipo e preencha somente os campos necessários"}</p>
+            <span className="pageEyebrow">IA Nutricionista</span>
+            <h2>Receitas para o restante do seu dia</h2>
+            <p>Você ainda possui <strong>{Math.max(0,Math.round(totals.remaining))} kcal</strong> e faltam aproximadamente <strong>{Math.max(0,160-Math.round(totals.protein_g))} g de proteína</strong>.</p>
           </div>
-          {editEntry && (
-            <button
-              className="ghostButton"
-              onClick={() => {
-                setEditEntry(null);
-                setForm({type:"meal",description:"",calories:0,protein_g:0,water_ml:0,caffeine_mg:0,weight_kg:"",occurred_at:""});
-              }}
-            >
-              Cancelar
-            </button>
-          )}
+          <Utensils size={48}/>
         </div>
 
-        <form onSubmit={submit} className="guidedForm">
-          <div className="fieldGroup">
-            <label>O que você quer registrar?</label>
-            <select
-              value={form.type}
-              onChange={(event) => setForm({...form, type:event.target.value})}
-            >
-              <option value="meal">🍽️ Refeição</option>
-              <option value="exercise">🏃 Exercício</option>
-              <option value="water">💧 Água</option>
-              <option value="caffeine">☕ Cafeína</option>
-              <option value="weight">⚖️ Peso</option>
-            </select>
-          </div>
-
-          <div className="fieldGroup">
-            <label>Descrição</label>
-            <input
-              required
-              placeholder={
-                form.type === "meal" ? "Ex.: arroz, feijão e frango" :
-                form.type === "exercise" ? "Ex.: corrida na esteira" :
-                form.type === "water" ? "Ex.: copo de água" :
-                form.type === "caffeine" ? "Ex.: café coado" :
-                "Ex.: pesagem da manhã"
-              }
-              value={form.description}
-              onChange={(event) => setForm({...form, description:event.target.value})}
-            />
-          </div>
-
-          {form.type === "meal" && (
-            <div className="formGrid">
-              <div className="fieldGroup">
-                <label>Calorias</label>
-                <input type="number" min="0" placeholder="kcal" value={form.calories} onChange={e=>setForm({...form,calories:e.target.value})}/>
+        <div className="recipeGrid">
+          {recommendedRecipes.map((recipe,index)=><article className={`recipeCard ${index===0?"featured":""}`} key={recipe.id}>
+            {index===0&&<div className="bestChoice">Melhor opção</div>}
+            <div className="recipeTop">
+              <div>
+                <span className="recipeTag">{recipe.time}</span>
+                <h3>{recipe.name}</h3>
               </div>
-              <div className="fieldGroup">
-                <label>Proteína</label>
-                <input type="number" min="0" step="0.1" placeholder="g" value={form.protein_g} onChange={e=>setForm({...form,protein_g:e.target.value})}/>
+              <div className="recipeCalories">{recipe.calories} kcal</div>
+            </div>
+
+            <div className="recipeProtein">{recipe.protein} g de proteína</div>
+
+            <details>
+              <summary>Ver receita completa</summary>
+              <div className="recipeDetails">
+                <div>
+                  <h4>Ingredientes</h4>
+                  <ul>{recipe.ingredients.map(item=><li key={item}>{item}</li>)}</ul>
+                </div>
+                <div>
+                  <h4>Modo de preparo</h4>
+                  <ol>{recipe.steps.map(step=><li key={step}>{step}</li>)}</ol>
+                </div>
               </div>
-            </div>
-          )}
+            </details>
+          </article>)}
+        </div>
+      </section>
+    )}
 
-          {form.type === "exercise" && (
-            <div className="fieldGroup">
-              <label>Calorias gastas</label>
-              <input type="number" min="0" placeholder="kcal" value={form.calories} onChange={e=>setForm({...form,calories:e.target.value})}/>
-            </div>
-          )}
+    {activePage === "history" && (
+      <section className="pageSection">
+        <div className="pageHero"><div><span className="pageEyebrow">Histórico</span><h2>Seu acompanhamento por dia</h2><p>Use o calendário para revisar qualquer data e editar ou excluir registros.</p></div><History size={48}/></div>
+        <div className="mainGrid">
+          <article className="panel calendarPanel">
+            <div className="panelHeader"><div><h2>Calendário completo</h2><p>Escolha uma data</p></div></div>
+            <div className="weekHeader">{["Seg","Ter","Qua","Qui","Sex","Sáb","Dom"].map(d=><span key={d}>{d}</span>)}</div>
+            <div className="calendarGrid">{calendarCells(calendarMonth).map((date,index)=>{
+              if(!date)return <div className="calendarBlank" key={index}/>;
+              const key=isoDate(date);
+              return <button key={key} className={`calendarDay ${key===selectedDate?"active":""}`} onClick={()=>setSelectedDate(key)}><span>{date.getDate()}</span>{monthCalories[key]>0&&<small>{Math.round(monthCalories[key])} kcal</small>}</button>
+            })}</div>
+          </article>
 
-          {form.type === "water" && (
-            <div className="fieldGroup">
-              <label>Quantidade de água</label>
-              <input type="number" min="0" placeholder="ml" value={form.water_ml} onChange={e=>setForm({...form,water_ml:e.target.value})}/>
-            </div>
-          )}
+          <article className="panel">
+            <div className="panelHeader"><div><h2>{dateLabel}</h2><p>{entries.length} registro(s)</p></div></div>
+            {entries.map(entry=><div className="entryRow" key={entry.id}><div className="entryMain"><div className="entryBadge">{entry.type==="meal"?"🍽️":"📝"}</div><div><strong>{entry.description}</strong><small>{Math.round(entry.calories||0)} kcal</small></div></div><div className="entryActions"><button onClick={()=>startEdit(entry)}><Pencil size={16}/></button><button onClick={()=>removeEntry(entry.id)}><Trash2 size={16}/></button></div></div>)}
+          </article>
+        </div>
+      </section>
+    )}
 
-          {form.type === "caffeine" && (
-            <div className="fieldGroup">
-              <label>Cafeína</label>
-              <input type="number" min="0" placeholder="mg" value={form.caffeine_mg} onChange={e=>setForm({...form,caffeine_mg:e.target.value})}/>
-            </div>
-          )}
+    {activePage === "stats" && (
+      <section className="pageSection">
+        <div className="pageHero"><div><span className="pageEyebrow">Estatísticas</span><h2>Visualize sua evolução</h2><p>Calorias, proteína e peso em gráficos claros.</p></div><BarChart3 size={48}/></div>
 
-          {form.type === "weight" && (
-            <div className="fieldGroup">
-              <label>Peso</label>
-              <input type="number" min="0" step="0.1" placeholder="kg" value={form.weight_kg} onChange={e=>setForm({...form,weight_kg:e.target.value})}/>
-            </div>
-          )}
+        <article className="panel widePanel">
+          <div className="panelHeader"><div><h2>Calorias nos últimos 7 dias</h2><p>Linha amarela: meta diária</p></div></div>
+          <div className="chartBox"><ResponsiveContainer width="100%" height={290}><BarChart data={last7}><CartesianGrid strokeDasharray="3 3" stroke="#ffffff10"/><XAxis dataKey="label" stroke="#9eb0c7"/><YAxis stroke="#9eb0c7"/><Tooltip contentStyle={{background:"#0e1d31",border:"1px solid #ffffff20",borderRadius:12}}/><ReferenceLine y={GOAL} stroke="#ffc857" strokeDasharray="6 6"/><Bar dataKey="calories" fill="#62a6ff" radius={[8,8,0,0]}/></BarChart></ResponsiveContainer></div>
+        </article>
 
-          <div className="fieldGroup">
-            <label>Data e horário <span className="optional">(opcional)</span></label>
-            <input type="datetime-local" value={form.occurred_at} onChange={e=>setForm({...form,occurred_at:e.target.value})}/>
-          </div>
+        <article className="panel widePanel statsSpacing">
+          <div className="panelHeader"><div><h2>Evolução do peso</h2><p>Últimos registros disponíveis</p></div></div>
+          <div className="chartBox">{weightData.length?<ResponsiveContainer width="100%" height={280}><LineChart data={weightData}><CartesianGrid strokeDasharray="3 3" stroke="#ffffff10"/><XAxis dataKey="label" stroke="#9eb0c7"/><YAxis stroke="#9eb0c7" domain={["dataMin - 1","dataMax + 1"]}/><Tooltip contentStyle={{background:"#0e1d31",border:"1px solid #ffffff20",borderRadius:12}}/><Line type="monotone" dataKey="weight" stroke="#58e0b0" strokeWidth={4} dot={{r:5}}/></LineChart></ResponsiveContainer>:<p className="emptyState">Registre seu peso para começar o gráfico.</p>}</div>
+        </article>
+      </section>
+    )}
 
-          <button className="primaryButton" disabled={!apiKey}>
-            <Plus size={18}/>
-            {editEntry ? "Salvar alteração" : "Registrar"}
-          </button>
-        </form>
-      </article>
-    </section>
+    {activePage === "profile" && (
+      <section className="pageSection">
+        <div className="pageHero"><div><span className="pageEyebrow">Perfil</span><h2>Metas e preferências</h2><p>Informações pessoais usadas no seu acompanhamento.</p></div><User size={48}/></div>
+
+        <div className="profileGrid">
+          <article className="panel profileInfo"><h2>Dados pessoais</h2><div><span>Nome</span><strong>Rafael</strong></div><div><span>Idade</span><strong>24 anos</strong></div><div><span>Altura</span><strong>170 cm</strong></div><div><span>Peso mais recente</span><strong>{totals.weight_kg?`${totals.weight_kg} kg`:"93,7 kg"}</strong></div></article>
+          <article className="panel profileInfo"><h2>Metas atuais</h2><div><span>Calorias</span><strong>1.850 kcal</strong></div><div><span>Proteína</span><strong>160 g</strong></div><div><span>Água</span><strong>3.000 ml</strong></div><div><span>Cafeína</span><strong>400 mg</strong></div></article>
+          <article className="panel profileInfo"><h2>Preferências</h2><div><span>Objetivo</span><strong>Perder gordura</strong></div><div><span>Estimativas</span><strong>Conservadoras para cima</strong></div><div><span>Sincronização</span><strong>Automática</strong></div><button className="primaryButton" onClick={()=>setSettingsOpen(true)}><Settings size={18}/>Configurar conexão</button></article>
+        </div>
+      </section>
+    )}
+
+    <nav className="bottomNav">
+      <button className={activePage==="home"?"active":""} onClick={()=>setActivePage("home")}><Home size={20}/><span>Início</span></button>
+      <button className={activePage==="recipes"?"active":""} onClick={()=>setActivePage("recipes")}><Utensils size={20}/><span>Receitas</span></button>
+      <button className={activePage==="history"?"active":""} onClick={()=>setActivePage("history")}><History size={20}/><span>Histórico</span></button>
+      <button className={activePage==="stats"?"active":""} onClick={()=>setActivePage("stats")}><BarChart3 size={20}/><span>Estatísticas</span></button>
+      <button className={activePage==="profile"?"active":""} onClick={()=>setActivePage("profile")}><User size={20}/><span>Perfil</span></button>
+    </nav>
 
     {settingsOpen&&<div className="modalBackdrop" onClick={()=>setSettingsOpen(false)}>
       <div className="settingsModal" onClick={e=>e.stopPropagation()}>

@@ -1,17 +1,20 @@
-# NutriClock v4.1
+# NutriClock v5 — Aplicativo com múltiplas páginas
 
-Alterações desta versão:
+Páginas incluídas:
 
-- formulário de novo registro simplificado;
-- campos aparecem conforme o tipo escolhido;
-- rótulos mais claros;
-- relógio sem segundos;
-- relógio fixado visualmente no canto superior direito;
-- botão principal alterado para “Registrar”.
+- Início: resumo diário, calendário, registros e novo registro.
+- Receitas: sugestões baseadas nas calorias e proteína restantes.
+- Histórico: consulta por dia, edição e exclusão.
+- Estatísticas: gráficos de calorias e peso.
+- Perfil: dados pessoais, metas e preferências.
 
-Publicação:
+A navegação é feita por uma barra fixa na parte inferior.
+
+## Publicação
+
 1. Extraia o ZIP.
-2. Envie todo o conteúdo para a raiz do repositório.
+2. Envie todo o conteúdo para a raiz do repositório GitHub.
 3. Substitua os arquivos existentes.
 4. Faça commit.
 5. Aguarde o deploy automático da Vercel.
+6. Abra o aplicativo, clique em ⚙️ e informe a NUTRICLOCK_API_KEY.

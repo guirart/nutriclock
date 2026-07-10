@@ -15,3 +15,50 @@
   .liveClock strong{font-size:22px}
   .liveClock span{display:none}
 }
+
+.recipesPanel{overflow:hidden}
+.recipeAlert{margin:14px 0;padding:12px 14px;border-radius:13px;background:#ffc85718;border:1px solid #ffc85735;color:#ffd77d}
+.recipeGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:16px}
+.recipeCard{background:#091628;border:1px solid #ffffff12;border-radius:17px;padding:16px}
+.recipeTop{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.recipeTop h3{margin:8px 0 0;font-size:18px}
+.recipeTag{display:inline-flex;padding:5px 9px;border-radius:999px;background:#62a6ff18;color:#8fc0ff;font-size:12px;font-weight:800}
+.recipeCalories{white-space:nowrap;padding:7px 10px;border-radius:10px;background:#58e0b018;color:#69e8bd;font-weight:900}
+.recipeProtein{margin:14px 0;color:#cfe1f7;font-weight:800}
+.recipeCard details{border-top:1px solid #ffffff12;padding-top:12px}
+.recipeCard summary{cursor:pointer;color:#8fc0ff;font-weight:800}
+.recipeDetails{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:12px}
+.recipeDetails h4{margin:0 0 8px}
+.recipeDetails ul,.recipeDetails ol{margin:0;padding-left:20px;color:#b8c8da;line-height:1.6}
+@media(max-width:900px){.recipeGrid{grid-template-columns:1fr}.recipeDetails{grid-template-columns:1fr 1fr}}
+@media(max-width:560px){.recipeDetails{grid-template-columns:1fr}.recipeTop{flex-direction:column}.recipeCalories{align-self:flex-start}}
+
+.pageSection{padding-bottom:100px}
+.pageHero{display:flex;justify-content:space-between;align-items:center;gap:20px;padding:26px;margin-bottom:16px;border-radius:22px;background:linear-gradient(135deg,#142945,#123b38);border:1px solid #ffffff16}
+.pageHero h2{margin:6px 0 8px;font-size:30px}
+.pageHero p{margin:0;color:#b6c7da}
+.pageEyebrow{font-size:12px;text-transform:uppercase;letter-spacing:.14em;color:#58e0b0;font-weight:900}
+.bottomNav{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:40;display:flex;gap:6px;padding:8px;border-radius:20px;background:#0b1728ee;border:1px solid #ffffff18;backdrop-filter:blur(18px);box-shadow:0 18px 50px #0008}
+.bottomNav button{min-width:92px;border:0;background:transparent;color:#8fa4bc;border-radius:14px;padding:10px 12px;display:grid;place-items:center;gap:4px;cursor:pointer}
+.bottomNav button span{font-size:11px}
+.bottomNav button.active{background:linear-gradient(135deg,#58e0b022,#62a6ff22);color:#fff}
+.profileGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.profileInfo>div{display:flex;justify-content:space-between;gap:15px;padding:14px 0;border-bottom:1px solid #ffffff12}
+.profileInfo>div span{color:#9eb0c7}
+.profileInfo>div strong{text-align:right}
+.statsSpacing{margin-top:16px}
+.guidedForm{display:grid;gap:14px;margin-top:16px}
+.fieldGroup{display:grid;gap:7px}
+.fieldGroup label{font-size:13px;font-weight:800;color:#dbe9f8}
+.guidedForm input,.guidedForm select{min-height:46px}
+@media(max-width:900px){
+  .profileGrid{grid-template-columns:1fr}
+  .bottomNav{left:10px;right:10px;transform:none;justify-content:space-between;overflow-x:auto}
+  .bottomNav button{min-width:70px}
+}
+@media(max-width:560px){
+  .pageHero h2{font-size:24px}
+  .pageHero svg{display:none}
+  .bottomNav{bottom:8px}
+  .bottomNav button span{font-size:10px}
+}
