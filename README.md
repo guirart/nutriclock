@@ -1,10 +1,14 @@
-# NutriClock v8.1.1 — deploy verificável
+# NutriClock v8.2 — Pixel Pet integrado
 
-Esta versão:
-- remove completamente o estado visual de sincronização;
-- mantém receitas com imagens;
-- mantém rotação de receitas;
-- mantém perfil e metas personalizadas;
-- mostra `Demonstração · v8.1.1` no cabeçalho para confirmar que o deploy novo está ativo.
+Esta versão integra o visual pixel-RPG ao aplicativo real:
 
-Após publicar, se o cabeçalho não exibir `v8.1.1`, a Vercel ainda está apontando para um deployment antigo.
+- MicoClock ilustrado em pixel art, sem emoji como personagem principal;
+- estados animados: ativo, feliz, dormindo, treinando e apaixonado;
+- interações, alimentação, treino e descanso;
+- energia, felicidade, fome e bananas persistentes no navegador;
+- chefe semanal com sprite, HP e efeitos de combate;
+- missões, equipamentos, inventário, baús e mapa em interface pixel-art;
+- restante do NutriClock, receitas e perfil personalizado preservados;
+- identificação de deploy: `Demonstração · v8.2`.
+
+Envie o conteúdo deste pacote para a raiz do repositório e faça um novo deploy na Vercel.

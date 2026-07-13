@@ -70,6 +70,15 @@ function seededShuffle(items,seed){
   return copy;
 }
 
+const PET_STATE_KEY = "nutriclock_pixel_pet_v1";
+const PET_POSES = {
+  idle:"/pet/mico-idle.png",
+  happy:"/pet/mico-happy.png",
+  sleep:"/pet/mico-sleep.png",
+  train:"/pet/mico-train.png",
+  love:"/pet/mico-love.png"
+};
+
 const CHEST_KEY = "nutriclock_rpg_chests_v1";
 const INVENTORY_KEY = "nutriclock_rpg_inventory_v1";
 const EQUIPMENT_KEY = "nutriclock_rpg_equipment_v1";
@@ -220,7 +229,6 @@ export default function Page(){
   const [month,setMonth]=useState(new Date());
   const [summary,setSummary]=useState(null);
   const [historyData,setHistoryData]=useState([]);
-  const [status,setStatus]=useState("Sincronizando...");
   const [editing,setEditing]=useState(null);
   const [form,setForm]=useState({type:"meal",description:"",calories:0,protein_g:0,water_ml:0,caffeine_mg:0,weight_kg:"",occurred_at:""});
   const [chests,setChests]=useState([]);
@@ -235,6 +243,11 @@ export default function Page(){
   const [profileDraft,setProfileDraft]=useState(DEFAULT_PROFILE);
   const [profileSaved,setProfileSaved]=useState(false);
   const [recipeRotation,setRecipeRotation]=useState(0);
+  const [petPose,setPetPose]=useState("idle");
+  const [petMessage,setPetMessage]=useState("Pronto para a próxima missão!");
+  const [petNeeds,setPetNeeds]=useState({energy:86,happiness:92,hunger:34,bananas:12});
+  const [petActionTick,setPetActionTick]=useState(0);
+
 
 
 
@@ -246,6 +259,8 @@ export default function Page(){
     const savedProfile=safeRead(PROFILE_KEY,DEFAULT_PROFILE);
     setProfile(savedProfile);
     setProfileDraft(savedProfile);
+    const savedPet=safeRead(PET_STATE_KEY,{energy:86,happiness:92,hunger:34,bananas:12});
+    setPetNeeds(savedPet);
     load();
     const retry=setTimeout(load,1800);
     const timer=setInterval(load,15000);
@@ -257,6 +272,17 @@ export default function Page(){
   useEffect(()=>{if(typeof window!=="undefined") localStorage.setItem(EQUIPMENT_KEY,JSON.stringify(equipment));},[equipment]);
   useEffect(()=>{if(typeof window!=="undefined") localStorage.setItem(CLAIMS_KEY,JSON.stringify(claims));},[claims]);
   useEffect(()=>{if(typeof window!=="undefined") localStorage.setItem(PROFILE_KEY,JSON.stringify(profile));},[profile]);
+  useEffect(()=>{if(typeof window!=="undefined") localStorage.setItem(PET_STATE_KEY,JSON.stringify(petNeeds));},[petNeeds]);
+  useEffect(()=>{
+    if(active!=="pet") return;
+    const idleTimer=setInterval(()=>{
+      setPetPose(current=>current==="idle"?"happy":"idle");
+      setPetMessage(current=>current.includes("missão")?"Estou de olho no mapa da selva.":"Pronto para a próxima missão!");
+      setPetActionTick(value=>value+1);
+    },9000);
+    return()=>clearInterval(idleTimer);
+  },[active]);
+
 
   async function api(path,options={}){
     const response=await fetch(path,{...options,headers:{...(options.headers||{})},cache:"no-store"});
@@ -267,17 +293,14 @@ export default function Page(){
 
   async function load(){
     try{
-      setStatus("Sincronizando...");
       const [daily,all]=await Promise.all([
         api(`/api/summary?date=${selectedDate}`),
         api("/api/entries?limit=500")
       ]);
       setSummary(daily);
       setHistoryData(all.entries||[]);
-      setStatus("Sincronizado");
     }catch(error){
       console.error(error);
-      setStatus("Falha ao sincronizar");
     }
   }
 
@@ -368,17 +391,51 @@ export default function Page(){
     return result;
   },[equippedItems]);
 
+  function runPetAction(pose,message,mutator){
+    setPetPose(pose);
+    setPetMessage(message);
+    setPetActionTick(value=>value+1);
+    if(mutator) setPetNeeds(current=>mutator(current));
+    window.setTimeout(()=>setPetPose("idle"),3200);
+  }
+
   function interactWithCompanion(){
     const messages=[
       "Eu vi seu esforço hoje. Continue!",
-      "Cada copo de água fortalece nossa jornada.",
+      "Cada hábito fortalece nossa jornada.",
       "Vamos derrubar esse chefe juntos!",
       "Sua disciplina está me deixando mais forte.",
-      "Complete uma missão e eu preparo o próximo ataque!",
-      "Os baús da selva estão esperando por nós."
+      "Tem um baú esperando por nós."
     ];
-    setCompanionMessage(messages[Math.floor(Math.random()*messages.length)]);
-    setCompanionReaction(value=>value+1);
+    runPetAction("happy",messages[Math.floor(Math.random()*messages.length)],current=>({
+      ...current,happiness:Math.min(100,current.happiness+6)
+    }));
+  }
+
+  function feedCompanion(){
+    if(petNeeds.bananas<=0){
+      runPetAction("love","Acabaram as bananas. Complete missões para conseguir mais.");
+      return;
+    }
+    runPetAction("love","Essa banana estava perfeita!",current=>({
+      ...current,bananas:current.bananas-1,hunger:Math.max(0,current.hunger-18),happiness:Math.min(100,current.happiness+3)
+    }));
+  }
+
+  function trainCompanion(){
+    if(petNeeds.energy<12){
+      runPetAction("sleep","Preciso recuperar energia antes de treinar.");
+      return;
+    }
+    runPetAction("train","Treino concluído. Ataque preparado!",current=>({
+      ...current,energy:Math.max(0,current.energy-12),hunger:Math.min(100,current.hunger+7)
+    }));
+  }
+
+  function restCompanion(){
+    runPetAction("sleep","Vou descansar um pouco no acampamento.",current=>({
+      ...current,energy:Math.min(100,current.energy+18)
+    }));
   }
 
   const goals=useMemo(()=>calculateGoals(profile),[profile]);
@@ -510,7 +567,7 @@ export default function Page(){
   return <main className="shell">
     <header className="topbar">
       <div className="brand"><div className="logoMark">N</div><div><h1>NutriClock</h1><p>Acompanhamento nutricional e hábitos</p></div></div>
-      <div className="mode"><span className="modeDot"/>Demonstração</div>
+      <div className="mode"><span className="modeDot"/>Demonstração · v8.2</div>
     </header>
 {active==="home"&&<>
       <div className="sectionIntro"><div><span>Resumo diário</span><h2>Visão geral</h2></div><p>Acompanhe o que importa hoje.</p></div><section className="stats">
@@ -584,152 +641,94 @@ export default function Page(){
 
     {active==="stats"&&<section className="page"><div className="hero"><BarChart3 size={42}/><div><span>Estatísticas</span><h2>Sua evolução</h2></div></div><article className="panel chartPanel"><h2>Calorias — últimos 7 dias</h2><ResponsiveContainer width="100%" height={300}><BarChart data={last7}><CartesianGrid strokeDasharray="3 3" stroke="#ffffff12"/><XAxis dataKey="label" stroke="#9fb2c9"/><YAxis stroke="#9fb2c9"/><Tooltip/><ReferenceLine y={goals.calorieGoal} stroke="#ffc857" strokeDasharray="6 6"/><Bar dataKey="calories" fill="#62a6ff" radius={[8,8,0,0]}/></BarChart></ResponsiveContainer></article><article className="panel chartPanel"><h2>Peso</h2>{weightData.length?<ResponsiveContainer width="100%" height={280}><LineChart data={weightData}><CartesianGrid strokeDasharray="3 3" stroke="#ffffff12"/><XAxis dataKey="label" stroke="#9fb2c9"/><YAxis stroke="#9fb2c9" domain={["dataMin - 1","dataMax + 1"]}/><Tooltip/><Line dataKey="weight" stroke="#58e0b0" strokeWidth={4}/></LineChart></ResponsiveContainer>:<div className="empty">Sem registros de peso.</div>}</article></section>}
 
-    {active==="pet"&&<section className="page rpgPage">
-      <div className="rpgHero companionHome">
-        <div className="companionScene" onClick={interactWithCompanion}>
-          <div className="skyGlow"/><div className="moon">🌙</div>
-          <div className="mountain mountainOne"/><div className="mountain mountainTwo"/>
-          <div className="tree treeLeft">🌴</div><div className="tree treeRight">🌳</div>
-          <div className="fireflies">{[1,2,3,4,5,6].map(dot=><i key={dot}/>)}</div>
-          <div className="campfire">🔥</div>
-          <div className="speechBubble">{companionMessage}</div>
-          <div className={`character interactiveCharacter reaction-${companionReaction%3}`}>{pet.stage.emoji}</div>
-          <span className="levelBadge">Nível {pet.level}</span>
-          <div className="equippedVisuals">{equippedItems.slice(0,3).map(item=><span key={item.id} title={item.name}>{item.icon}</span>)}</div>
-          <div className="sceneHint">Toque no seu companheiro</div>
+    {active==="pet"&&<section className="page pixelPetPage">
+      <header className="pixelPetHeader">
+        <div><span className="pixelEyebrow">Seu companheiro de jornada</span><h2>MicoClock</h2></div>
+        <div className="bananaWallet"><span>🍌</span><strong>{petNeeds.bananas}</strong><button onClick={()=>setRpgTab("chests")}>+</button></div>
+      </header>
+
+      <section className="pixelCompanionCard">
+        <div className={`pixelStage pose-${petPose}`} onClick={interactWithCompanion} key={`${petPose}-${petActionTick}`}>
+          <div className="pixelStageGlow"/><div className="pixelDust">{[1,2,3,4,5,6,7].map(dot=><i key={dot}/>)}</div>
+          <img className="pixelCompanionArt" src={PET_POSES[petPose]} alt={`MicoClock em estado ${petPose}`}/>
+          <div className="pixelSpeech">{petMessage}</div>
+          <div className="pixelStageHint">Toque no MicoClock</div>
         </div>
-        <div className="rpgHeroText">
-          <span className="rpgEyebrow">Companheiro de jornada</span>
-          <h2>{pet.stage.name}</h2>
-          <p className="rpgTitle">{pet.stage.title}</p><p className="companionNote">Seu progresso diário fortalece este companheiro e desbloqueia novas etapas.</p>
-          <div className="xpHeader"><strong>{pet.totalXp} XP</strong><span>{pet.level===6?"Nível máximo":"Rumo à próxima evolução"}</span></div>
-          <div className="rpgXp"><span style={{width:`${pet.progress}%`}}/></div>
-          <div className="quickStats">
-            {Object.entries(totalStats).slice(0,4).map(([stat,value])=><span key={stat}>{STAT_LABELS[stat]} +{value}</span>)}
+
+        <div className="pixelCharacterInfo">
+          <div className="pixelNameRow"><div><h3>MicoClock</h3><span className="pixelOnline"><i/>Companheiro ativo</span></div><button aria-label="Editar nome"><Pencil size={16}/></button></div>
+          <div className="pixelLevelRow"><div className="pixelLevelBadge"><small>NÍVEL</small><strong>{pet.level}</strong></div><div className="pixelXp"><div><strong>{pet.totalXp}</strong><span>/ 600 XP</span></div><div className="pixelBar green"><span style={{width:`${Math.min(100,pet.progress)}%`}}/></div><small>{pet.stage.name} · {pet.stage.title}</small></div></div>
+          <div className="pixelVitals">
+            <div><span className="vitalIcon">⚡</span><label>Energia</label><div className="pixelBar yellow"><span style={{width:`${petNeeds.energy}%`}}/></div><strong>{petNeeds.energy}/100</strong></div>
+            <div><span className="vitalIcon">♥</span><label>Felicidade</label><div className="pixelBar red"><span style={{width:`${petNeeds.happiness}%`}}/></div><strong>{petNeeds.happiness}/100</strong></div>
+            <div><span className="vitalIcon">🍴</span><label>Fome</label><div className="pixelBar orange"><span style={{width:`${petNeeds.hunger}%`}}/></div><strong>{petNeeds.hunger}/100</strong></div>
           </div>
         </div>
+
+        <div className="pixelActions">
+          <button className="interact" onClick={interactWithCompanion}><Gamepad2/><span><strong>Interagir</strong><small>+ Felicidade</small></span></button>
+          <button className="feed" onClick={feedCompanion}><span className="actionEmoji">🍌</span><span><strong>Alimentar</strong><small>- Fome</small></span></button>
+          <button className="train" onClick={trainCompanion}><Dumbbell/><span><strong>Treinar</strong><small>Preparar ataque</small></span></button>
+        </div>
+      </section>
+
+      <div className="pixelPoseStrip">
+        {[{id:"idle",label:"Ativo"},{id:"sleep",label:"Dormindo"},{id:"train",label:"Treino"},{id:"love",label:"Feliz"}].map(state=><button className={petPose===state.id?"active":""} onClick={()=>{setPetPose(state.id);setPetActionTick(v=>v+1)}} key={state.id}><img src={PET_POSES[state.id]}/><span>{state.label}</span></button>)}
+        <button className="lockedPose" onClick={restCompanion}><LockKeyhole/><span>Descansar</span></button>
       </div>
 
-      <nav className="rpgTabs">
+      <nav className="pixelTabs">
         <button className={rpgTab==="journey"?"active":""} onClick={()=>setRpgTab("journey")}><Sword/>Jornada</button>
         <button className={rpgTab==="chests"?"active":""} onClick={()=>setRpgTab("chests")}><PackageOpen/>Baús <b>{chests.length}</b></button>
         <button className={rpgTab==="inventory"?"active":""} onClick={()=>setRpgTab("inventory")}><Backpack/>Inventário <b>{inventory.length}</b></button>
       </nav>
 
       {rpgTab==="journey"&&<>
-        <section className="rpgSummary">
-          <article className="panel rpgStat"><Sword/><div><span>XP semanal</span><b>{pet.totalXp}</b></div></article>
-          <article className="panel rpgStat"><Shield/><div><span>Moral</span><b>{pet.average>=75?"Alta":pet.average>=50?"Estável":"Baixa"}</b></div></article>
-          <article className="panel rpgStat"><Crown/><div><span>Classe</span><b>{pet.stage.title}</b></div></article>
-        </section>
-
-        <article className="panel questBoard">
-          <div className="panelHead"><div><h2><Sword size={20}/>Mapa da Jornada</h2><p>Progresso semanal por etapas da jornada.</p></div><strong className="questScore">{pet.average}/100</strong></div>
-          <div className="questPath">
-            {pet.missions.map((mission,index)=><article className={`questNode ${mission.xp>=70?"completed":mission.xp>=40?"active":"danger"}`} key={mission.key}>
-              <div className="questIcon">{mission.xp>=70?"🏆":mission.xp>=40?"⚔️":"💀"}</div>
-              <div className="questInfo"><span>{pet.locations[index]}</span><strong>Missão {index+1}</strong><small>{mission.xp} XP</small></div>
-              <div className="questLine"/>
-            </article>)}
+        <article className="pixelBossCard">
+          <div className="pixelBossHead"><div><span>☠</span><div><small>CHEFE DA SEMANA</small><h3>Gorilão Sombrio</h3></div></div><div className="bossTimer">5d 14h restantes</div></div>
+          <div className="pixelBossBody">
+            <div className="pixelBossProgress"><p>Cada objetivo concluído causa dano. Penalidades recuperam a vida do chefe.</p><div className="bossHpLabels"><strong>{pet.boss.hp} / {pet.boss.maxHp} HP</strong><span>{pet.boss.percent}%</span></div><div className="pixelBossHp"><span style={{width:`${pet.boss.percent}%`}}/></div><div className="bossReward"><span>⚔ Dano {pet.boss.damage}</span><span>💚 Cura {pet.boss.regeneration}</span><span>🧰 Baú lendário</span></div></div>
+            <div className={`pixelBossSprite ${pet.boss.hp===0?"defeated":""}`}><img src="/pet/boss-shadow.png" alt="Gorilão Sombrio"/><i>✦</i><b>💥</b></div>
           </div>
         </article>
 
-        <section className="rpgColumns">
-          <article className="panel">
-            <div className="panelHead"><div><h2>Missões atuais</h2><p>Conclua objetivos para ganhar experiência e recompensas.</p></div><Sparkles/></div>
-            {(pet.missions.at(-1)?.quests||[]).map(q=><div className={`missionRow ${q.done?"done":""}`} key={q.id}><div className="missionStatus">{q.done?"✓":"○"}</div><div><strong>{q.name}</strong><small>{q.done?`+${q.xp} XP • recompensa processada`:"Pendente"}</small></div></div>)}
-            {(pet.missions.at(-1)?.penalties||[]).map(p=><div className="missionRow penalty" key={p.name}><div className="missionStatus">−</div><div><strong>{p.name}</strong><small>{p.xp} XP</small></div></div>)}
+        <section className="pixelDashboardGrid">
+          <article className="pixelWindow missionsWindow">
+            <div className="pixelWindowTitle"><span>📜</span><h3>Missões atuais</h3></div>
+            {(pet.missions.at(-1)?.quests||[]).map(q=><div className={`pixelMission ${q.done?"done":""}`} key={q.id}><div className="missionGlyph">{q.id==="agua"?"💧":q.id==="proteina"?"🍖":q.id==="treino"?"⚔":"✓"}</div><div><strong>{q.name}</strong><small>{q.done?"Concluída":"Em andamento"}</small><div className="missionMiniBar"><span style={{width:q.done?"100%":"35%"}}/></div></div><b>{q.done?`+${q.xp} XP`:"Pendente"}</b></div>)}
           </article>
-          <article className="panel bossPanel">
-            <div className={`bossArena ${pet.boss.hp===0?"defeated":""}`}><div className="bossCreature">{pet.boss.emoji}</div><div className="impactFlash">💥</div></div>
-            <span className="rpgEyebrow">Chefe semanal</span><h2>{pet.boss.name}</h2>
-            <div className="bossHpHeader"><strong>HP {pet.boss.hp} / {pet.boss.maxHp}</strong><span>{pet.boss.percent}%</span></div>
-            <div className="bossHpBar"><span style={{width:`${pet.boss.percent}%`}}/></div>
-            <div className="bossCombatStats"><span>⚔️ Dano: {pet.boss.damage}</span><span>💚 Regeneração: {pet.boss.regeneration}</span></div>
-            <p>{pet.boss.message}</p><div className={`bossStatus ${pet.boss.status==="Derrotado"?"won":""}`}>{pet.boss.status}</div>
-            <div className="attackLog"><h4>Últimos golpes</h4>{!pet.recentAttacks.length&&<small>Nenhum golpe aplicado ainda.</small>}{pet.recentAttacks.map(attack=><div key={attack.id}><span>{attack.name}</span><b>-{attack.damage} HP</b></div>)}</div>
-          </article>
+
+          <div className="pixelSideStack">
+            <article className="pixelWindow equipmentPreview">
+              <div className="pixelWindowTitle"><span>🎒</span><h3>Equipamentos</h3></div>
+              <div className="pixelEquipmentSlots">{["head","weapon","body"].map(slot=>{const item=inventory.find(entry=>entry.id===equipment[slot]);return <button onClick={()=>setRpgTab("inventory")} key={slot}>{item?<><span>{item.icon}</span><small>{item.rarityName}</small></>:<><LockKeyhole/><small>Vazio</small></>}</button>})}</div>
+            </article>
+            <article className="pixelWindow inventoryPreview">
+              <div className="pixelWindowTitle"><span>👜</span><h3>Inventário</h3><small>{inventory.length}/30 itens</small></div>
+              <div className="pixelInventoryQuick">{inventory.slice(0,3).map(item=><button onClick={()=>setRpgTab("inventory")} key={item.id}><span>{item.icon}</span><b>{item.rarityName}</b></button>)}<button onClick={()=>setRpgTab("inventory")}><Plus/><b>Abrir</b></button></div>
+            </article>
+          </div>
         </section>
 
-        <article className="panel">
-          <div className="panelHead"><div><h2><Trophy size={20}/>Conquistas</h2><p>Relíquias desbloqueadas pela sua jornada.</p></div></div>
-          <div className="achievementGrid">{pet.achievements.map(a=><article className={`achievement ${a.unlocked?"unlocked":"locked"}`} key={a.name}><div>{a.unlocked?a.icon:<LockKeyhole/>}</div><strong>{a.name}</strong><small>{a.unlocked?"Desbloqueada":"Bloqueada"}</small></article>)}</div>
+        <article className="pixelWindow journeyWindow">
+          <div className="pixelWindowTitle"><span>🗺</span><h3>Mapa da semana</h3><strong>{pet.average}/100</strong></div>
+          <div className="pixelQuestPath">{pet.missions.map((mission,index)=><div className={`pixelQuestNode ${mission.xp>=70?"complete":mission.xp>=40?"current":"danger"}`} key={mission.key}><span>{mission.xp>=70?"🏆":mission.xp>=40?"⚔":"☠"}</span><strong>{pet.locations[index]}</strong><small>{mission.xp} XP</small></div>)}</div>
         </article>
       </>}
 
-      {rpgTab==="chests"&&<section className="lootPage">
-        <div className="lootIntro panel">
-          <div><span className="rpgEyebrow">Recompensas</span><h2>Baús disponíveis</h2><p>Os baús são conquistados ao concluir metas de água, proteína, treino e equilíbrio calórico.</p></div>
-          <PackageOpen size={54}/>
-        </div>
-
-        <div className="rarityOdds panel">
-          <h3>Probabilidades de drop</h3>
-          <div>{RARITIES.map(r=><span key={r.id} style={{borderColor:r.color,color:r.color}}>{r.name} {r.weight}%</span>)}</div>
-        </div>
-
-        {!chests.length&&<div className="panel emptyLoot"><PackageOpen size={46}/><h3>Nenhum baú guardado</h3><p>Complete uma missão saudável para receber seu próximo baú.</p></div>}
-
-        <div className="chestGrid">
-          {chests.map(chest=><article className={`chestCard ${chest.tier}`} key={chest.id}>
-            <div className="chestIcon">🧰</div>
-            <span>{chest.tier==="rare"?"Baú Raro":"Baú de Missão"}</span>
-            <h3>{chest.title}</h3>
-            <small>Guardado em {new Date(chest.earnedAt).toLocaleDateString("pt-BR")}</small>
-            <button onClick={()=>openChest(chest)}><PackageOpen/>Abrir baú</button>
-          </article>)}
-        </div>
+      {rpgTab==="chests"&&<section className="pixelLootPage">
+        <article className="pixelWindow pixelLootIntro"><div><span className="pixelEyebrow">Recompensas guardadas</span><h2>{chests.length} baú(s) disponíveis</h2><p>Abra quando quiser. Cada baú pode conter equipamentos de diferentes raridades.</p></div><div className="bigPixelChest">🧰</div></article>
+        <div className="pixelRarityRow">{RARITIES.map(r=><span key={r.id} style={{color:r.color,borderColor:r.color}}>{r.name} {r.weight}%</span>)}</div>
+        {!chests.length&&<div className="pixelWindow pixelEmpty"><PackageOpen/><h3>Nenhum baú guardado</h3><p>Complete metas para receber recompensas.</p></div>}
+        <div className="pixelChestGrid">{chests.map(chest=><article className={`pixelChestCard ${chest.tier}`} key={chest.id}><div>🧰</div><small>{chest.tier==="rare"?"RARO":"MISSÃO"}</small><h3>{chest.title}</h3><button onClick={()=>openChest(chest)}>Abrir baú</button></article>)}</div>
       </section>}
 
-      {rpgTab==="inventory"&&<section className="inventoryPage">
-        <article className="panel equippedPanel">
-          <div className="panelHead"><div><h2><Shirt/>Equipamentos ativos</h2><p>Cada item equipado adiciona atributos ao seu companheiro.</p></div></div>
-          <div className="equipmentGrid">
-            {Object.entries(SLOT_LABELS).map(([slot,label])=>{
-              const item=inventory.find(entry=>entry.id===equipment[slot]);
-              return <article className="equipmentSlot" key={slot}>
-                <span>{label}</span>
-                {item?<><div className="itemIcon">{item.icon}</div><strong style={{color:item.rarityColor}}>{item.name}</strong><small>{item.rarityName}</small><button onClick={()=>unequipSlot(slot)}>Remover</button></>:<><div className="emptySlot"><CircleDot/></div><strong>Vazio</strong><small>Equipe um item</small></>}
-              </article>;
-            })}
-          </div>
-        </article>
-
-        <article className="panel statsPanel">
-          <h2>Atributos do equipamento</h2>
-          <div className="statGrid">
-            {Object.entries(STAT_LABELS).map(([stat,label])=><div key={stat}><span>{label}</span><b>{totalStats[stat]||0}</b></div>)}
-          </div>
-        </article>
-
-        <article className="panel">
-          <div className="panelHead"><div><h2><Backpack/>Inventário</h2><p>{inventory.length} item(ns) encontrados.</p></div></div>
-          {!inventory.length&&<div className="emptyLoot"><Gem size={44}/><h3>Inventário vazio</h3><p>Abra baús para encontrar equipamentos.</p></div>}
-          <div className="inventoryGrid">
-            {inventory.map(item=><article className="itemCard" style={{borderColor:item.rarityColor}} key={item.id}>
-              <div className="itemIcon">{item.icon}</div>
-              <span style={{color:item.rarityColor}}>{item.rarityName}</span>
-              <h3>{item.name}</h3>
-              <small>{SLOT_LABELS[item.slot]}</small>
-              <div className="itemStats">{Object.entries(item.stats).map(([stat,value])=><b key={stat}>{STAT_LABELS[stat]} +{value}</b>)}</div>
-              <button onClick={()=>equipItem(item)}>{equipment[item.slot]===item.id?"Equipado":"Equipar"}</button>
-            </article>)}
-          </div>
-        </article>
+      {rpgTab==="inventory"&&<section className="pixelInventoryPage">
+        <article className="pixelWindow"><div className="pixelWindowTitle"><span>🛡</span><h3>Equipamentos ativos</h3></div><div className="pixelFullEquipment">{Object.entries(SLOT_LABELS).map(([slot,label])=>{const item=inventory.find(entry=>entry.id===equipment[slot]);return <article key={slot}><small>{label}</small>{item?<><div>{item.icon}</div><strong style={{color:item.rarityColor}}>{item.name}</strong><button onClick={()=>unequipSlot(slot)}>Remover</button></>:<><LockKeyhole/><strong>Vazio</strong></>}</article>})}</div></article>
+        <article className="pixelWindow"><div className="pixelWindowTitle"><span>🎒</span><h3>Mochila</h3><small>{inventory.length} itens</small></div>{!inventory.length&&<div className="pixelEmpty"><Gem/><p>Abra baús para encontrar equipamentos.</p></div>}<div className="pixelItemGrid">{inventory.map(item=><article style={{borderColor:item.rarityColor}} key={item.id}><div>{item.icon}</div><span style={{color:item.rarityColor}}>{item.rarityName}</span><h4>{item.name}</h4><small>{Object.entries(item.stats).map(([stat,value])=>`${STAT_LABELS[stat]} +${value}`).join(" · ")}</small><button onClick={()=>equipItem(item)}>{equipment[item.slot]===item.id?"Equipado":"Equipar"}</button></article>)}</div></article>
       </section>}
 
-      {lootReveal&&<div className="lootModal" onClick={()=>setLootReveal(null)}>
-        <div className="lootReveal" onClick={event=>event.stopPropagation()} style={{borderColor:lootReveal.item.rarityColor}}>
-          <Sparkles size={34}/>
-          <span className="rpgEyebrow">Drop encontrado</span>
-          <div className="revealIcon">{lootReveal.item.icon}</div>
-          <h2>{lootReveal.item.name}</h2>
-          <strong style={{color:lootReveal.item.rarityColor}}>{lootReveal.item.rarityName}</strong>
-          <div className="revealStats">{Object.entries(lootReveal.item.stats).map(([stat,value])=><span key={stat}>{STAT_LABELS[stat]} +{value}</span>)}</div>
-          <button onClick={()=>{equipItem(lootReveal.item);setLootReveal(null);setRpgTab("inventory")}}>Equipar agora</button>
-          <button className="secondary" onClick={()=>setLootReveal(null)}>Guardar na mochila</button>
-        </div>
-      </div>}
+      {lootReveal&&<div className="lootModal" onClick={()=>setLootReveal(null)}><div className="pixelLootReveal" onClick={event=>event.stopPropagation()} style={{borderColor:lootReveal.item.rarityColor}}><Sparkles/><span>ITEM ENCONTRADO</span><div>{lootReveal.item.icon}</div><h2>{lootReveal.item.name}</h2><strong style={{color:lootReveal.item.rarityColor}}>{lootReveal.item.rarityName}</strong><button onClick={()=>{equipItem(lootReveal.item);setLootReveal(null);setRpgTab("inventory")}}>Equipar agora</button><button onClick={()=>setLootReveal(null)}>Guardar</button></div></div>}
     </section>}
 
     {active==="profile"&&<section className="page">
