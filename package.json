@@ -1,6 +1,6 @@
 {
-  "name": "nutriclock-v7",
-  "version": "7.0.1",
+  "name": "nutriclock-v7-rpg",
+  "version": "7.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",

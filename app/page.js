@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Home as HomeIcon, Utensils, History, BarChart3, User, Gamepad2,
   Flame, Dumbbell, Scale, Droplets, Coffee, Beef, Plus, Pencil,
-  Trash2, ChevronLeft, ChevronRight, CalendarDays
+  Trash2, ChevronLeft, ChevronRight, CalendarDays, Sword, Shield, Crown, Trophy, LockKeyhole, Sparkles
 } from "lucide-react";
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip,
@@ -54,15 +54,23 @@ function scoreDay(entries,key){
   const exercise=day.filter(e=>e.type==="exercise").reduce((s,e)=>s+Math.abs(Number(e.calories||0)),0);
   const protein=day.filter(e=>e.type==="meal").reduce((s,e)=>s+Number(e.protein_g||0),0);
   const water=day.filter(e=>e.type==="water").reduce((s,e)=>s+Number(e.water_ml||0),0);
-  let score=50;
-  if(day.length) score+=8; else score-=10;
   const net=consumed-exercise;
-  if(net>0&&net<=GOAL) score+=18;
-  if(net>GOAL+300) score-=22; else if(net>GOAL) score-=10;
-  if(protein>=130) score+=18; else if(protein>=90) score+=10; else if(day.length) score-=8;
-  if(water>=2500) score+=12; else if(water>=1200) score+=5; else if(day.length) score-=6;
-  if(exercise>0) score+=10;
-  return Math.max(0,Math.min(100,Math.round(score)));
+  const quests=[
+    {id:"registro",name:"Diário do Aventureiro",done:day.length>0,xp:10},
+    {id:"calorias",name:"Equilíbrio da Selva",done:net>0&&net<=GOAL,xp:25},
+    {id:"proteina",name:"Força do Primata",done:protein>=130,xp:25},
+    {id:"agua",name:"Fonte Ancestral",done:water>=2500,xp:20},
+    {id:"treino",name:"Prova de Combate",done:exercise>0,xp:20}
+  ];
+  let xp=quests.filter(q=>q.done).reduce((sum,q)=>sum+q.xp,0);
+  const penalties=[];
+  if(day.length===0) penalties.push({name:"Acampamento abandonado",xp:-10});
+  if(net>GOAL+300) penalties.push({name:"Banquete do Caos",xp:-25});
+  else if(net>GOAL) penalties.push({name:"Excesso na jornada",xp:-10});
+  if(day.length>0&&protein<90) penalties.push({name:"Força insuficiente",xp:-10});
+  if(day.length>0&&water<1200) penalties.push({name:"Sede da floresta",xp:-10});
+  xp+=penalties.reduce((sum,p)=>sum+p.xp,0);
+  return {key,xp:Math.max(0,Math.min(100,Math.round(xp))),quests,penalties,consumed,exercise,protein,water,net};
 }
 
 export default function Page(){
@@ -185,15 +193,37 @@ export default function Page(){
   },[totals.remaining]);
 
   const pet=useMemo(()=>{
-    const days=[];
+    const missions=[];
     for(let i=6;i>=0;i--){
       const d=new Date();d.setDate(d.getDate()-i);
-      const key=isoDate(d);
-      days.push({key,score:scoreDay(historyData,key)});
+      missions.push(scoreDay(historyData,isoDate(d)));
     }
-    const average=Math.round(days.reduce((s,d)=>s+d.score,0)/days.length);
-    const state=average>=80?{emoji:"🐉",name:"Dragão saudável"}:average>=65?{emoji:"🦊",name:"Raposa focada"}:average>=50?{emoji:"🐱",name:"Gato estável"}:average>=35?{emoji:"🐢",name:"Tartaruga cansada"}:{emoji:"👻",name:"Pet faminto"};
-    return {days,average,level:Math.max(1,Math.floor(average/10)),...state};
+    const totalXp=missions.reduce((sum,m)=>sum+m.xp,0);
+    const average=Math.round(totalXp/missions.length);
+    const level=Math.max(1,Math.min(6,Math.floor(totalXp/100)+1));
+    const stages=[
+      {emoji:"🐒",name:"Macaco Bebê",title:"Aprendiz da Clareira",min:0},
+      {emoji:"🐵",name:"Macaco Jovem",title:"Explorador da Selva",min:100},
+      {emoji:"🙉",name:"Escalador Tribal",title:"Guardião das Copas",min:200},
+      {emoji:"🦧",name:"Orangotango Sábio",title:"Oráculo da Floresta",min:300},
+      {emoji:"🦍",name:"Gorila Guerreiro",title:"Campeão do Templo",min:400},
+      {emoji:"🦍",name:"Gorila Mestre",title:"Mestre Ancestral",min:500}
+    ];
+    const stage=stages[level-1];
+    const progress=level===6?100:Math.max(0,Math.min(100,totalXp-stage.min));
+    const locations=["Clareira do Despertar","Ponte dos Cipós","Ruínas da Selva","Montanha do Eco","Templo do Gorila","Trono Ancestral","Ascensão da Lua"];
+    const achievements=[
+      {name:"Primeiro Passo",icon:"🌱",unlocked:historyData.length>=1},
+      {name:"Mestre da Proteína",icon:"🥩",unlocked:missions.some(m=>m.protein>=130)},
+      {name:"Fonte Ancestral",icon:"💧",unlocked:missions.some(m=>m.water>=2500)},
+      {name:"Guerreiro da Selva",icon:"⚔️",unlocked:missions.filter(m=>m.exercise>0).length>=3},
+      {name:"Semana Equilibrada",icon:"⚖️",unlocked:average>=70},
+      {name:"Lenda da Selva",icon:"👑",unlocked:level>=6}
+    ];
+    const boss=average>=75
+      ?{name:"Cobra do Açúcar",emoji:"🐍",status:"Derrotado",message:"Você venceu o chefe semanal mantendo bons hábitos."}
+      :{name:"Crocodilo da Preguiça",emoji:"🐊",status:"Em combate",message:"Complete mais missões para derrotar o chefe da semana."};
+    return {missions,totalXp,average,level,stage,progress,locations,achievements,boss};
   },[historyData]);
 
   const dateLabel=new Date(`${selectedDate}T12:00:00`).toLocaleDateString("pt-BR",{weekday:"long",day:"2-digit",month:"long",year:"numeric"});
@@ -261,7 +291,60 @@ export default function Page(){
 
     {active==="stats"&&<section className="page"><div className="hero"><BarChart3 size={42}/><div><span>Estatísticas</span><h2>Sua evolução</h2></div></div><article className="panel chartPanel"><h2>Calorias — últimos 7 dias</h2><ResponsiveContainer width="100%" height={300}><BarChart data={last7}><CartesianGrid strokeDasharray="3 3" stroke="#ffffff12"/><XAxis dataKey="label" stroke="#9fb2c9"/><YAxis stroke="#9fb2c9"/><Tooltip/><ReferenceLine y={GOAL} stroke="#ffc857" strokeDasharray="6 6"/><Bar dataKey="calories" fill="#62a6ff" radius={[8,8,0,0]}/></BarChart></ResponsiveContainer></article><article className="panel chartPanel"><h2>Peso</h2>{weightData.length?<ResponsiveContainer width="100%" height={280}><LineChart data={weightData}><CartesianGrid strokeDasharray="3 3" stroke="#ffffff12"/><XAxis dataKey="label" stroke="#9fb2c9"/><YAxis stroke="#9fb2c9" domain={["dataMin - 1","dataMax + 1"]}/><Tooltip/><Line dataKey="weight" stroke="#58e0b0" strokeWidth={4}/></LineChart></ResponsiveContainer>:<div className="empty">Sem registros de peso.</div>}</article></section>}
 
-    {active==="pet"&&<section className="page"><div className="petHero"><div className="pet">{pet.emoji}</div><div><span>Bichinho virtual</span><h2>{pet.name}</h2><p>Nível {pet.level} • {pet.average}/100 XP semanal</p><Progress value={pet.average} max={100}/></div></div><div className="petDays">{pet.days.map(d=><article className="panel" key={d.key}><strong>{new Date(`${d.key}T12:00:00`).toLocaleDateString("pt-BR",{weekday:"short"})}</strong><b>{d.score}</b><Progress value={d.score} max={100}/></article>)}</div></section>}
+    {active==="pet"&&<section className="page rpgPage">
+      <div className="rpgHero">
+        <div className="characterStage">
+          <div className="characterAura"/>
+          <div className="character">{pet.stage.emoji}</div>
+          <span className="levelBadge">Nível {pet.level}</span>
+        </div>
+        <div className="rpgHeroText">
+          <span className="rpgEyebrow">Jornada do Guardião da Selva</span>
+          <h2>{pet.stage.name}</h2>
+          <p className="rpgTitle">{pet.stage.title}</p>
+          <div className="xpHeader"><strong>{pet.totalXp} XP</strong><span>{pet.level===6?"Nível máximo":"Rumo à próxima evolução"}</span></div>
+          <div className="rpgXp"><span style={{width:`${pet.progress}%`}}/></div>
+        </div>
+      </div>
+
+      <section className="rpgSummary">
+        <article className="panel rpgStat"><Sword/><div><span>XP semanal</span><b>{pet.totalXp}</b></div></article>
+        <article className="panel rpgStat"><Shield/><div><span>Moral</span><b>{pet.average>=75?"Alta":pet.average>=50?"Estável":"Baixa"}</b></div></article>
+        <article className="panel rpgStat"><Crown/><div><span>Classe</span><b>{pet.stage.title}</b></div></article>
+      </section>
+
+      <article className="panel questBoard">
+        <div className="panelHead"><div><h2><Sword size={20}/>Mapa da Jornada</h2><p>As etapas substituem os dias da semana.</p></div><strong className="questScore">{pet.average}/100</strong></div>
+        <div className="questPath">
+          {pet.missions.map((mission,index)=><article className={`questNode ${mission.xp>=70?"completed":mission.xp>=40?"active":"danger"}`} key={mission.key}>
+            <div className="questIcon">{mission.xp>=70?"🏆":mission.xp>=40?"⚔️":"💀"}</div>
+            <div className="questInfo"><span>{pet.locations[index]}</span><strong>Missão {index+1}</strong><small>{mission.xp} XP</small></div>
+            <div className="questLine"/>
+          </article>)}
+        </div>
+      </article>
+
+      <section className="rpgColumns">
+        <article className="panel">
+          <div className="panelHead"><div><h2>Missões atuais</h2><p>Boas práticas concedem experiência.</p></div><Sparkles/></div>
+          {(pet.missions.at(-1)?.quests||[]).map(q=><div className={`missionRow ${q.done?"done":""}`} key={q.id}><div className="missionStatus">{q.done?"✓":"○"}</div><div><strong>{q.name}</strong><small>{q.done?`+${q.xp} XP`:"Pendente"}</small></div></div>)}
+          {(pet.missions.at(-1)?.penalties||[]).map(p=><div className="missionRow penalty" key={p.name}><div className="missionStatus">−</div><div><strong>{p.name}</strong><small>{p.xp} XP</small></div></div>)}
+        </article>
+        <article className="panel bossPanel">
+          <div className="bossCreature">{pet.boss.emoji}</div><span className="rpgEyebrow">Chefe semanal</span><h2>{pet.boss.name}</h2><p>{pet.boss.message}</p><div className={`bossStatus ${pet.boss.status==="Derrotado"?"won":""}`}>{pet.boss.status}</div>
+        </article>
+      </section>
+
+      <article className="panel">
+        <div className="panelHead"><div><h2><Trophy size={20}/>Conquistas</h2><p>Relíquias desbloqueadas pela sua jornada.</p></div></div>
+        <div className="achievementGrid">{pet.achievements.map(a=><article className={`achievement ${a.unlocked?"unlocked":"locked"}`} key={a.name}><div>{a.unlocked?a.icon:<LockKeyhole/>}</div><strong>{a.name}</strong><small>{a.unlocked?"Desbloqueada":"Bloqueada"}</small></article>)}</div>
+      </article>
+
+      <article className="panel evolutionPanel">
+        <div className="panelHead"><div><h2>Evolução do Primata</h2><p>Do Macaco Bebê ao Gorila Mestre.</p></div></div>
+        <div className="evolutionTrack">{[["🐒","Macaco Bebê"],["🐵","Macaco Jovem"],["🙉","Escalador Tribal"],["🦧","Orangotango Sábio"],["🦍","Gorila Guerreiro"],["🦍","Gorila Mestre"]].map((s,i)=><article className={`evolutionStage ${pet.level>=i+1?"unlocked":""}`} key={s[1]}><div>{s[0]}</div><strong>{s[1]}</strong><small>Nível {i+1}</small></article>)}</div>
+      </article>
+    </section>}
 
     {active==="profile"&&<section className="page"><div className="hero"><User size={42}/><div><span>Perfil</span><h2>Metas atuais</h2></div></div><div className="profileGrid"><article className="panel"><h3>Calorias</h3><b>{GOAL} kcal</b></article><article className="panel"><h3>Proteína</h3><b>{PROTEIN_GOAL} g</b></article><article className="panel"><h3>Água</h3><b>{WATER_GOAL} ml</b></article><article className="panel"><h3>Cafeína</h3><b>{CAFFEINE_GOAL} mg</b></article></div></section>}
 
