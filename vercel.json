@@ -1,8 +1,0 @@
-{
-  "framework": "nextjs",
-  "regions": [
-    "gru1"
-  ],
-  "installCommand": "npm ci --legacy-peer-deps --no-audit --no-fund",
-  "buildCommand": "npm run build"
-}
