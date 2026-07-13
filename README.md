@@ -1,10 +1,12 @@
-# NutriClock v8.2.2 — deploy limpo
+# NutriClock v8.3 — Pet funcional
 
-Correção do deploy:
-- removido package-lock.json gerado com URLs internas incompatíveis com a Vercel;
-- removido installCommand com npm ci;
-- Vercel usará npm install normal;
-- dependências auxiliares desnecessárias removidas;
-- Node 24.x mantido.
-
-Envie o conteúdo desta pasta diretamente para a raiz do GitHub.
+Correções:
+- somente o MicoClock ativo é exibido;
+- removida a faixa com poses alternativas;
+- botões agora alteram felicidade, fome, energia e contadores diários;
+- animações do mesmo personagem para interação, alimentação, treino e recompensa;
+- login diário automático com recompensa de bananas;
+- sequência de login salva no navegador;
+- chefe semanal redimensionado;
+- contador real até o reinício semanal;
+- missões explicam exatamente o que registrar e mostram progresso real.

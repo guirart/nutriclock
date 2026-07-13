@@ -370,3 +370,31 @@ button:active{transform:translateY(1px)}
 @keyframes pixelIdle{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-5px) scale(1.01)}}@keyframes pixelBounce{to{transform:translateY(-9px) scale(1.035)}}@keyframes pixelBreathe{50%{transform:scale(.985) translateY(4px)}}@keyframes pixelPunch{to{transform:translateX(7px) scale(1.04)}}@keyframes pixelDust{0%{opacity:0;transform:translate(0,8px)}35%{opacity:1}100%{opacity:0;transform:translate(18px,-35px)}}@keyframes bossSpark{0%,100%{opacity:0;transform:scale(.5)}50%{opacity:1;transform:scale(1.2)}}
 @media(max-width:920px){.pixelCompanionCard{grid-template-columns:1fr}.pixelStage{min-height:420px;border-right:0;border-bottom:3px solid #373129}.pixelBossBody{grid-template-columns:1fr 230px}.pixelDashboardGrid{grid-template-columns:1fr}.pixelQuestPath{grid-template-columns:repeat(4,1fr)}.pixelFullEquipment{grid-template-columns:repeat(3,1fr)}.pixelItemGrid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:620px){.pixelPetPage{margin-left:-4px;margin-right:-4px}.pixelPetHeader{margin-top:4px}.pixelPetHeader h2{font-size:22px}.pixelCompanionCard{border-radius:4px}.pixelStage{min-height:350px}.pixelCharacterInfo{padding:15px 12px}.pixelNameRow h3{font-size:25px}.pixelVitals>div{grid-template-columns:22px 66px 1fr 49px}.pixelActions{grid-template-columns:1fr}.pixelActions button{min-height:56px}.pixelPoseStrip{grid-template-columns:repeat(5,105px);overflow-x:auto;padding-bottom:4px}.pixelPoseStrip button{min-height:82px}.pixelBossBody{grid-template-columns:1fr}.pixelBossSprite{min-height:170px}.pixelDashboardGrid{grid-template-columns:1fr}.pixelQuestPath{grid-template-columns:repeat(2,1fr)}.pixelChestGrid,.pixelItemGrid{grid-template-columns:1fr}.pixelFullEquipment{grid-template-columns:repeat(2,1fr)}.pixelWindowTitle h3{font-size:13px}}
+
+/* v8.3 — pet funcional, login diário e chefe corrigido */
+.pixelCompanionArt{transform-origin:50% 88%;will-change:transform,filter}
+.monkey-idle .pixelCompanionArt{animation:monkeyBreathe 2.8s ease-in-out infinite}
+.monkey-look .pixelCompanionArt{animation:monkeyLook 1.8s ease-in-out}
+.monkey-wave .pixelCompanionArt{animation:monkeyWave 1.2s ease-in-out}
+.monkey-eat .pixelCompanionArt{animation:monkeyEat 1.4s ease-in-out}
+.monkey-attack .pixelCompanionArt{animation:monkeyAttack 1.1s ease-in-out}
+.monkey-celebrate .pixelCompanionArt{animation:monkeyCelebrate 1.5s ease-in-out}
+.monkey-sad .pixelCompanionArt,.monkey-tired .pixelCompanionArt{animation:monkeySad 1.8s ease-in-out;filter:saturate(.7) brightness(.85)}
+@keyframes monkeyBreathe{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-5px) scale(1.015)}}
+@keyframes monkeyLook{0%,100%{transform:rotate(0)}35%{transform:rotate(-4deg) translateX(-5px)}70%{transform:rotate(4deg) translateX(5px)}}
+@keyframes monkeyWave{0%,100%{transform:translateY(0) rotate(0)}30%{transform:translateY(-14px) rotate(-5deg) scale(1.04)}60%{transform:translateY(-8px) rotate(4deg)}}
+@keyframes monkeyEat{0%,100%{transform:scale(1)}35%{transform:scale(1.06) translateY(-5px)}65%{transform:scale(.98) translateY(3px)}}
+@keyframes monkeyAttack{0%{transform:translateX(0)}35%{transform:translateX(-20px) rotate(-5deg)}65%{transform:translateX(28px) rotate(5deg) scale(1.05)}100%{transform:translateX(0)}}
+@keyframes monkeyCelebrate{0%,100%{transform:translateY(0)}30%{transform:translateY(-38px) rotate(-6deg)}60%{transform:translateY(-15px) rotate(6deg)}}
+@keyframes monkeySad{0%,100%{transform:translateY(0)}50%{transform:translateY(8px) scale(.97)}}
+.petActionFeedback{display:flex;gap:8px;flex-wrap:wrap;padding:12px 16px 16px}
+.petActionFeedback span{padding:7px 10px;border-radius:10px;background:#0c151d;border:1px solid #24313c;color:#aebbc7;font-size:11px}
+.petActionFeedback b{color:#7dd3a7}
+.dailyLoginCard{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:14px;margin:14px 0;padding:16px 18px;border-radius:16px;background:linear-gradient(135deg,#15231d,#101821);border:1px solid rgba(125,211,167,.25)}
+.loginCalendarIcon{font-size:32px}.dailyLoginCard small{color:#7dd3a7;font-size:10px;font-weight:800;letter-spacing:.08em}.dailyLoginCard h3{margin:3px 0 4px}.dailyLoginCard p{margin:0;color:#93a1b2;font-size:11px;line-height:1.45}
+.loginReward{display:grid;justify-items:center;padding:9px 13px;border-radius:12px;background:#0d151c;border:1px solid #263641}.loginReward span{font-size:25px}.loginReward strong{color:#f0c96b}
+.compactBoss{overflow:hidden}.compactBoss .pixelBossHead{align-items:center}.bossTimerLive{display:grid;justify-items:end;padding:7px 10px;border-radius:10px;background:#0c131b;border:1px solid #2a3440}.bossTimerLive small{font-size:8px;color:#8c9bab}.bossTimerLive strong{font-size:11px;color:#e7edf4;font-variant-numeric:tabular-nums}
+.compactBoss .pixelBossBody{display:grid;grid-template-columns:150px 1fr;align-items:center;gap:16px;padding:14px 18px 18px}.resizedBoss{width:145px;height:118px;display:grid;place-items:center;overflow:hidden}.resizedBoss img{width:145px;height:100px;object-fit:contain;object-position:center;filter:drop-shadow(0 8px 14px rgba(93,49,158,.45))}
+.compactBoss .pixelBossProgress p{font-size:11px;line-height:1.45;margin:9px 0;color:#9dabba}.compactBoss .bossReward{display:flex;gap:7px;flex-wrap:wrap}.compactBoss .bossReward span{font-size:9px}
+.explainedMission{align-items:flex-start}.missionContent{min-width:0;flex:1}.missionContent p{margin:4px 0;color:#91a0ad;font-size:10px;line-height:1.4}.missionContent small{display:block;color:#b8c5d0;font-size:9px;margin-bottom:5px}
+@media(max-width:620px){.dailyLoginCard{grid-template-columns:auto 1fr}.loginReward{grid-column:1/-1;display:flex;justify-content:center;gap:8px}.compactBoss .pixelBossBody{grid-template-columns:105px 1fr;gap:9px;padding:12px}.resizedBoss,.resizedBoss img{width:100px}.bossTimerLive strong{font-size:9px}.petActionFeedback{padding:10px}}

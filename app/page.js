@@ -70,14 +70,10 @@ function seededShuffle(items,seed){
   return copy;
 }
 
-const PET_STATE_KEY = "nutriclock_pixel_pet_v1";
-const PET_POSES = {
-  idle:"/pet/mico-idle.png",
-  happy:"/pet/mico-happy.png",
-  sleep:"/pet/mico-sleep.png",
-  train:"/pet/mico-train.png",
-  love:"/pet/mico-love.png"
-};
+const PET_STATE_KEY = "nutriclock_pixel_pet_v2";
+const PET_ACTIVE_IMAGE = "/pet/mico-idle.png";
+const DAILY_LOGIN_KEY = "nutriclock_daily_login_v1";
+const PET_ACTIONS_KEY = "nutriclock_pet_actions_v1";
 
 const CHEST_KEY = "nutriclock_rpg_chests_v1";
 const INVENTORY_KEY = "nutriclock_rpg_inventory_v1";
@@ -176,6 +172,28 @@ const RECIPES = [
 function dateKey(date=new Date()){
   return new Intl.DateTimeFormat("en-CA",{timeZone:"America/Sao_Paulo",year:"numeric",month:"2-digit",day:"2-digit"}).format(date);
 }
+function dayDifference(a,b){
+  const first=new Date(`${a}T12:00:00`);
+  const second=new Date(`${b}T12:00:00`);
+  return Math.round((second-first)/86400000);
+}
+function weeklyResetAt(){
+  const now=new Date();
+  const local=new Date(now.toLocaleString("en-US",{timeZone:"America/Sao_Paulo"}));
+  const daysUntilMonday=(8-local.getDay())%7||7;
+  const reset=new Date(local);
+  reset.setDate(local.getDate()+daysUntilMonday);
+  reset.setHours(0,0,0,0);
+  return reset;
+}
+function formatCountdown(milliseconds){
+  const total=Math.max(0,Math.floor(milliseconds/1000));
+  const days=Math.floor(total/86400);
+  const hours=Math.floor((total%86400)/3600);
+  const minutes=Math.floor((total%3600)/60);
+  const seconds=total%60;
+  return `${days}d ${String(hours).padStart(2,"0")}h ${String(minutes).padStart(2,"0")}m ${String(seconds).padStart(2,"0")}s`;
+}
 function isoDate(date){
   return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,"0")}-${String(date.getDate()).padStart(2,"0")}`;
 }
@@ -243,10 +261,13 @@ export default function Page(){
   const [profileDraft,setProfileDraft]=useState(DEFAULT_PROFILE);
   const [profileSaved,setProfileSaved]=useState(false);
   const [recipeRotation,setRecipeRotation]=useState(0);
-  const [petPose,setPetPose]=useState("idle");
+  const [petAnimation,setPetAnimation]=useState("idle");
   const [petMessage,setPetMessage]=useState("Pronto para a próxima missão!");
   const [petNeeds,setPetNeeds]=useState({energy:86,happiness:92,hunger:34,bananas:12});
   const [petActionTick,setPetActionTick]=useState(0);
+  const [dailyLogin,setDailyLogin]=useState({lastLogin:null,streak:0,totalLogins:0});
+  const [petActions,setPetActions]=useState({date:dateKey(),interactions:0,feeds:0,trainings:0});
+  const [bossCountdown,setBossCountdown]=useState("");
 
 
 
@@ -260,7 +281,24 @@ export default function Page(){
     setProfile(savedProfile);
     setProfileDraft(savedProfile);
     const savedPet=safeRead(PET_STATE_KEY,{energy:86,happiness:92,hunger:34,bananas:12});
-    setPetNeeds(savedPet);
+    const savedLogin=safeRead(DAILY_LOGIN_KEY,{lastLogin:null,streak:0,totalLogins:0});
+    const savedActions=safeRead(PET_ACTIONS_KEY,{date:dateKey(),interactions:0,feeds:0,trainings:0});
+    const today=dateKey();
+    let nextLogin=savedLogin;
+    let nextPet=savedPet;
+    if(savedLogin.lastLogin!==today){
+      const consecutive=savedLogin.lastLogin&&dayDifference(savedLogin.lastLogin,today)===1;
+      const streak=consecutive?savedLogin.streak+1:1;
+      const reward=streak%7===0?7:2;
+      nextLogin={lastLogin:today,streak,totalLogins:(savedLogin.totalLogins||0)+1,lastReward:reward};
+      nextPet={...savedPet,bananas:(savedPet.bananas||0)+reward};
+      setPetMessage(`Login diário: você recebeu ${reward} bananas!`);
+      setPetAnimation("celebrate");
+      setTimeout(()=>setPetAnimation("idle"),2600);
+    }
+    setDailyLogin(nextLogin);
+    setPetNeeds(nextPet);
+    setPetActions(savedActions.date===today?savedActions:{date:today,interactions:0,feeds:0,trainings:0});
     load();
     const retry=setTimeout(load,1800);
     const timer=setInterval(load,15000);
@@ -273,15 +311,25 @@ export default function Page(){
   useEffect(()=>{if(typeof window!=="undefined") localStorage.setItem(CLAIMS_KEY,JSON.stringify(claims));},[claims]);
   useEffect(()=>{if(typeof window!=="undefined") localStorage.setItem(PROFILE_KEY,JSON.stringify(profile));},[profile]);
   useEffect(()=>{if(typeof window!=="undefined") localStorage.setItem(PET_STATE_KEY,JSON.stringify(petNeeds));},[petNeeds]);
+  useEffect(()=>{if(typeof window!=="undefined") localStorage.setItem(DAILY_LOGIN_KEY,JSON.stringify(dailyLogin));},[dailyLogin]);
+  useEffect(()=>{if(typeof window!=="undefined") localStorage.setItem(PET_ACTIONS_KEY,JSON.stringify(petActions));},[petActions]);
   useEffect(()=>{
     if(active!=="pet") return;
     const idleTimer=setInterval(()=>{
-      setPetPose(current=>current==="idle"?"happy":"idle");
-      setPetMessage(current=>current.includes("missão")?"Estou de olho no mapa da selva.":"Pronto para a próxima missão!");
+      setPetAnimation("look");
+      setPetMessage("Estou acompanhando seu progresso.");
       setPetActionTick(value=>value+1);
+      setTimeout(()=>setPetAnimation("idle"),1800);
     },9000);
     return()=>clearInterval(idleTimer);
   },[active]);
+
+  useEffect(()=>{
+    const updateCountdown=()=>setBossCountdown(formatCountdown(weeklyResetAt()-new Date()));
+    updateCountdown();
+    const timer=setInterval(updateCountdown,1000);
+    return()=>clearInterval(timer);
+  },[]);
 
 
   async function api(path,options={}){
@@ -391,50 +439,46 @@ export default function Page(){
     return result;
   },[equippedItems]);
 
-  function runPetAction(pose,message,mutator){
-    setPetPose(pose);
+  function runPetAction(animation,message,mutator){
+    setPetAnimation(animation);
     setPetMessage(message);
     setPetActionTick(value=>value+1);
     if(mutator) setPetNeeds(current=>mutator(current));
-    window.setTimeout(()=>setPetPose("idle"),3200);
+    window.setTimeout(()=>setPetAnimation("idle"),2200);
   }
 
   function interactWithCompanion(){
     const messages=[
-      "Eu vi seu esforço hoje. Continue!",
-      "Cada hábito fortalece nossa jornada.",
-      "Vamos derrubar esse chefe juntos!",
-      "Sua disciplina está me deixando mais forte.",
-      "Tem um baú esperando por nós."
+      "Que bom ver você por aqui!",
+      "Seu cuidado aumentou minha felicidade.",
+      "Vamos cumprir as missões de hoje!",
+      "Estou ficando mais forte com sua disciplina."
     ];
-    runPetAction("happy",messages[Math.floor(Math.random()*messages.length)],current=>({
-      ...current,happiness:Math.min(100,current.happiness+6)
+    setPetActions(current=>({...current,interactions:current.interactions+1}));
+    runPetAction("wave",messages[Math.floor(Math.random()*messages.length)],current=>({
+      ...current,happiness:Math.min(100,current.happiness+8)
     }));
   }
 
   function feedCompanion(){
     if(petNeeds.bananas<=0){
-      runPetAction("love","Acabaram as bananas. Complete missões para conseguir mais.");
+      runPetAction("sad","Você não tem bananas. Faça login amanhã ou conclua recompensas.");
       return;
     }
-    runPetAction("love","Essa banana estava perfeita!",current=>({
-      ...current,bananas:current.bananas-1,hunger:Math.max(0,current.hunger-18),happiness:Math.min(100,current.happiness+3)
+    setPetActions(current=>({...current,feeds:current.feeds+1}));
+    runPetAction("eat","Banana recebida! Minha fome diminuiu.",current=>({
+      ...current,bananas:current.bananas-1,hunger:Math.max(0,current.hunger-20),happiness:Math.min(100,current.happiness+3)
     }));
   }
 
   function trainCompanion(){
     if(petNeeds.energy<12){
-      runPetAction("sleep","Preciso recuperar energia antes de treinar.");
+      runPetAction("tired","Minha energia está baixa. Interaja comigo e volte mais tarde.");
       return;
     }
-    runPetAction("train","Treino concluído. Ataque preparado!",current=>({
-      ...current,energy:Math.max(0,current.energy-12),hunger:Math.min(100,current.hunger+7)
-    }));
-  }
-
-  function restCompanion(){
-    runPetAction("sleep","Vou descansar um pouco no acampamento.",current=>({
-      ...current,energy:Math.min(100,current.energy+18)
+    setPetActions(current=>({...current,trainings:current.trainings+1}));
+    runPetAction("attack","Treino concluído! Estou pronto para enfrentar o chefe.",current=>({
+      ...current,energy:Math.max(0,current.energy-12),hunger:Math.min(100,current.hunger+7),happiness:Math.min(100,current.happiness+2)
     }));
   }
 
@@ -648,9 +692,9 @@ export default function Page(){
       </header>
 
       <section className="pixelCompanionCard">
-        <div className={`pixelStage pose-${petPose}`} onClick={interactWithCompanion} key={`${petPose}-${petActionTick}`}>
+        <div className={`pixelStage monkey-${petAnimation}`} onClick={interactWithCompanion} key={`${petAnimation}-${petActionTick}`}>
           <div className="pixelStageGlow"/><div className="pixelDust">{[1,2,3,4,5,6,7].map(dot=><i key={dot}/>)}</div>
-          <img className="pixelCompanionArt" src={PET_POSES[petPose]} alt={`MicoClock em estado ${petPose}`}/>
+          <img className="pixelCompanionArt" src={PET_ACTIVE_IMAGE} alt="MicoClock ativo"/>
           <div className="pixelSpeech">{petMessage}</div>
           <div className="pixelStageHint">Toque no MicoClock</div>
         </div>
@@ -670,12 +714,18 @@ export default function Page(){
           <button className="feed" onClick={feedCompanion}><span className="actionEmoji">🍌</span><span><strong>Alimentar</strong><small>- Fome</small></span></button>
           <button className="train" onClick={trainCompanion}><Dumbbell/><span><strong>Treinar</strong><small>Preparar ataque</small></span></button>
         </div>
+        <div className="petActionFeedback">
+          <span>Interações hoje: <b>{petActions.interactions}</b></span>
+          <span>Alimentações: <b>{petActions.feeds}</b></span>
+          <span>Treinos: <b>{petActions.trainings}</b></span>
+        </div>
       </section>
 
-      <div className="pixelPoseStrip">
-        {[{id:"idle",label:"Ativo"},{id:"sleep",label:"Dormindo"},{id:"train",label:"Treino"},{id:"love",label:"Feliz"}].map(state=><button className={petPose===state.id?"active":""} onClick={()=>{setPetPose(state.id);setPetActionTick(v=>v+1)}} key={state.id}><img src={PET_POSES[state.id]}/><span>{state.label}</span></button>)}
-        <button className="lockedPose" onClick={restCompanion}><LockKeyhole/><span>Descansar</span></button>
-      </div>
+      <article className="dailyLoginCard">
+        <div className="loginCalendarIcon">📅</div>
+        <div><small>RECOMPENSA DE LOGIN</small><h3>{dailyLogin.streak} dia(s) consecutivo(s)</h3><p>Entre uma vez por dia para receber 2 bananas. A cada 7º dia, receba 7 bananas.</p></div>
+        <div className="loginReward"><span>🍌</span><strong>+{dailyLogin.lastReward||0}</strong><small>hoje</small></div>
+      </article>
 
       <nav className="pixelTabs">
         <button className={rpgTab==="journey"?"active":""} onClick={()=>setRpgTab("journey")}><Sword/>Jornada</button>
@@ -684,18 +734,44 @@ export default function Page(){
       </nav>
 
       {rpgTab==="journey"&&<>
-        <article className="pixelBossCard">
-          <div className="pixelBossHead"><div><span>☠</span><div><small>CHEFE DA SEMANA</small><h3>Gorilão Sombrio</h3></div></div><div className="bossTimer">5d 14h restantes</div></div>
+        <article className="pixelBossCard compactBoss">
+          <div className="pixelBossHead">
+            <div><span>☠</span><div><small>CHEFE DA SEMANA</small><h3>Gorilão Sombrio</h3></div></div>
+            <div className="bossTimerLive"><small>REINÍCIO EM</small><strong>{bossCountdown}</strong></div>
+          </div>
           <div className="pixelBossBody">
-            <div className="pixelBossProgress"><p>Cada objetivo concluído causa dano. Penalidades recuperam a vida do chefe.</p><div className="bossHpLabels"><strong>{pet.boss.hp} / {pet.boss.maxHp} HP</strong><span>{pet.boss.percent}%</span></div><div className="pixelBossHp"><span style={{width:`${pet.boss.percent}%`}}/></div><div className="bossReward"><span>⚔ Dano {pet.boss.damage}</span><span>💚 Cura {pet.boss.regeneration}</span><span>🧰 Baú lendário</span></div></div>
-            <div className={`pixelBossSprite ${pet.boss.hp===0?"defeated":""}`}><img src="/pet/boss-shadow.png" alt="Gorilão Sombrio"/><i>✦</i><b>💥</b></div>
+            <div className={`pixelBossSprite resizedBoss ${pet.boss.hp===0?"defeated":""}`}>
+              <img src="/pet/boss-shadow.png" alt="Gorilão Sombrio"/>
+            </div>
+            <div className="pixelBossProgress">
+              <div className="bossHpLabels"><strong>{pet.boss.hp} / {pet.boss.maxHp} HP</strong><span>{pet.boss.percent}%</span></div>
+              <div className="pixelBossHp"><span style={{width:`${pet.boss.percent}%`}}/></div>
+              <p>Cumpra as missões listadas abaixo. Cada missão concluída retira HP do chefe. O chefe é reiniciado toda segunda-feira à meia-noite.</p>
+              <div className="bossReward"><span>⚔ Dano causado: {pet.boss.damage}</span><span>💚 HP recuperado: {pet.boss.regeneration}</span></div>
+            </div>
           </div>
         </article>
 
         <section className="pixelDashboardGrid">
           <article className="pixelWindow missionsWindow">
             <div className="pixelWindowTitle"><span>📜</span><h3>Missões atuais</h3></div>
-            {(pet.missions.at(-1)?.quests||[]).map(q=><div className={`pixelMission ${q.done?"done":""}`} key={q.id}><div className="missionGlyph">{q.id==="agua"?"💧":q.id==="proteina"?"🍖":q.id==="treino"?"⚔":"✓"}</div><div><strong>{q.name}</strong><small>{q.done?"Concluída":"Em andamento"}</small><div className="missionMiniBar"><span style={{width:q.done?"100%":"35%"}}/></div></div><b>{q.done?`+${q.xp} XP`:"Pendente"}</b></div>)}
+            {(pet.missions.at(-1)?.quests||[]).map(q=>{
+              const detail=q.id==="agua"
+                ?{text:`Registre água até alcançar ${goals.waterGoal} ml.`,current:Math.round(totals.water_ml||0),target:goals.waterGoal,unit:"ml"}
+                :q.id==="proteina"
+                ?{text:`Registre refeições até alcançar ${goals.proteinGoal} g de proteína.`,current:Math.round(totals.protein_g||0),target:goals.proteinGoal,unit:"g"}
+                :q.id==="treino"
+                ?{text:"Registre pelo menos um exercício no dia.",current:(pet.missions.at(-1)?.exercise||0)>0?1:0,target:1,unit:"treino"}
+                :q.id==="calorias"
+                ?{text:`Mantenha o saldo líquido entre 1 e ${goals.calorieGoal} kcal.`,current:Math.max(0,Math.round(totals.net||0)),target:goals.calorieGoal,unit:"kcal"}
+                :{text:"Faça pelo menos um registro nutricional hoje.",current:entries.length>0?1:0,target:1,unit:"registro"};
+              const percent=Math.min(100,Math.round((detail.current/detail.target)*100));
+              return <div className={`pixelMission explainedMission ${q.done?"done":""}`} key={q.id}>
+                <div className="missionGlyph">{q.id==="agua"?"💧":q.id==="proteina"?"🍖":q.id==="treino"?"⚔":q.id==="calorias"?"⚖":"✓"}</div>
+                <div className="missionContent"><strong>{q.name}</strong><p>{detail.text}</p><small>{detail.current} / {detail.target} {detail.unit}</small><div className="missionMiniBar"><span style={{width:`${percent}%`}}/></div></div>
+                <b>{q.done?`+${q.xp} XP`:"Pendente"}</b>
+              </div>;
+            })}
           </article>
 
           <div className="pixelSideStack">
