@@ -418,14 +418,14 @@ export default function Page(){
 
   return <main className="shell">
     <header className="topbar">
-      <div className="brand"><div className="logo">⏱️</div><div><h1>NutriClock</h1><p>Painel nutricional inteligente</p></div></div>
-      <div className="mode">🧪 Teste público • dados compartilhados</div>
+      <div className="brand"><div className="logoMark">N</div><div><h1>NutriClock</h1><p>Acompanhamento nutricional e hábitos</p></div></div>
+      <div className="mode"><span className="modeDot"/>Demonstração</div>
     </header>
 
     <div className={`status ${status==="Sincronizado"?"ok":""}`}>{status}</div>
 
     {active==="home"&&<>
-      <section className="stats">
+      <div className="sectionIntro"><div><span>Resumo diário</span><h2>Visão geral</h2></div><p>Acompanhe o que importa hoje.</p></div><section className="stats">
         <article><Flame/><div><span>Consumidas</span><b>{Math.round(totals.consumed)} kcal</b></div></article>
         <article><Dumbbell/><div><span>Exercício</span><b>{Math.abs(Math.round(totals.exercise))} kcal</b></div></article>
         <article><Scale/><div><span>Saldo líquido</span><b>{Math.round(totals.net)} kcal</b></div></article>
@@ -494,9 +494,9 @@ export default function Page(){
           <div className="sceneHint">Toque no seu companheiro</div>
         </div>
         <div className="rpgHeroText">
-          <span className="rpgEyebrow">Jornada do Guardião da Selva</span>
+          <span className="rpgEyebrow">Companheiro de jornada</span>
           <h2>{pet.stage.name}</h2>
-          <p className="rpgTitle">{pet.stage.title}</p>
+          <p className="rpgTitle">{pet.stage.title}</p><p className="companionNote">Seu progresso diário fortalece este companheiro e desbloqueia novas etapas.</p>
           <div className="xpHeader"><strong>{pet.totalXp} XP</strong><span>{pet.level===6?"Nível máximo":"Rumo à próxima evolução"}</span></div>
           <div className="rpgXp"><span style={{width:`${pet.progress}%`}}/></div>
           <div className="quickStats">
@@ -519,7 +519,7 @@ export default function Page(){
         </section>
 
         <article className="panel questBoard">
-          <div className="panelHead"><div><h2><Sword size={20}/>Mapa da Jornada</h2><p>As etapas substituem os dias da semana.</p></div><strong className="questScore">{pet.average}/100</strong></div>
+          <div className="panelHead"><div><h2><Sword size={20}/>Mapa da Jornada</h2><p>Progresso semanal por etapas da jornada.</p></div><strong className="questScore">{pet.average}/100</strong></div>
           <div className="questPath">
             {pet.missions.map((mission,index)=><article className={`questNode ${mission.xp>=70?"completed":mission.xp>=40?"active":"danger"}`} key={mission.key}>
               <div className="questIcon">{mission.xp>=70?"🏆":mission.xp>=40?"⚔️":"💀"}</div>
@@ -531,7 +531,7 @@ export default function Page(){
 
         <section className="rpgColumns">
           <article className="panel">
-            <div className="panelHead"><div><h2>Missões atuais</h2><p>Objetivos concluídos podem gerar baús.</p></div><Sparkles/></div>
+            <div className="panelHead"><div><h2>Missões atuais</h2><p>Conclua objetivos para ganhar experiência e recompensas.</p></div><Sparkles/></div>
             {(pet.missions.at(-1)?.quests||[]).map(q=><div className={`missionRow ${q.done?"done":""}`} key={q.id}><div className="missionStatus">{q.done?"✓":"○"}</div><div><strong>{q.name}</strong><small>{q.done?`+${q.xp} XP • recompensa processada`:"Pendente"}</small></div></div>)}
             {(pet.missions.at(-1)?.penalties||[]).map(p=><div className="missionRow penalty" key={p.name}><div className="missionStatus">−</div><div><strong>{p.name}</strong><small>{p.xp} XP</small></div></div>)}
           </article>
@@ -554,7 +554,7 @@ export default function Page(){
 
       {rpgTab==="chests"&&<section className="lootPage">
         <div className="lootIntro panel">
-          <div><span className="rpgEyebrow">Tesouro acumulado</span><h2>Baús aguardando abertura</h2><p>Complete água, proteína, treino e equilíbrio calórico. O baú fica guardado até você abrir.</p></div>
+          <div><span className="rpgEyebrow">Recompensas</span><h2>Baús disponíveis</h2><p>Os baús são conquistados ao concluir metas de água, proteína, treino e equilíbrio calórico.</p></div>
           <PackageOpen size={54}/>
         </div>
 
@@ -578,7 +578,7 @@ export default function Page(){
 
       {rpgTab==="inventory"&&<section className="inventoryPage">
         <article className="panel equippedPanel">
-          <div className="panelHead"><div><h2><Shirt/>Equipamentos</h2><p>Itens equipados concedem atributos ao seu primata.</p></div></div>
+          <div className="panelHead"><div><h2><Shirt/>Equipamentos ativos</h2><p>Cada item equipado adiciona atributos ao seu companheiro.</p></div></div>
           <div className="equipmentGrid">
             {Object.entries(SLOT_LABELS).map(([slot,label])=>{
               const item=inventory.find(entry=>entry.id===equipment[slot]);
@@ -598,7 +598,7 @@ export default function Page(){
         </article>
 
         <article className="panel">
-          <div className="panelHead"><div><h2><Backpack/>Mochila</h2><p>{inventory.length} item(ns) encontrados.</p></div></div>
+          <div className="panelHead"><div><h2><Backpack/>Inventário</h2><p>{inventory.length} item(ns) encontrados.</p></div></div>
           {!inventory.length&&<div className="emptyLoot"><Gem size={44}/><h3>Inventário vazio</h3><p>Abra baús para encontrar equipamentos.</p></div>}
           <div className="inventoryGrid">
             {inventory.map(item=><article className="itemCard" style={{borderColor:item.rarityColor}} key={item.id}>

@@ -2,7 +2,7 @@ import "./globals.css";
 
 export const metadata = {
   title: "NutriClock",
-  description: "Acompanhamento nutricional inteligente",
+  description: "Acompanhamento nutricional, hábitos e evolução semanal",
   manifest: "/manifest.webmanifest"
 };
 

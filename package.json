@@ -1,6 +1,6 @@
 {
-  "name": "nutriclock-v7-companion-boss",
-  "version": "7.3.0",
+  "name": "nutriclock-v8-professional",
+  "version": "8.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
