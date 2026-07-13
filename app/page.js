@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Home as HomeIcon, Utensils, History, BarChart3, User, Gamepad2,
   Flame, Dumbbell, Scale, Droplets, Coffee, Beef, Plus, Pencil,
-  Trash2, ChevronLeft, ChevronRight, CalendarDays, Sword, Shield, Crown, Trophy, LockKeyhole, Sparkles
+  Trash2, ChevronLeft, ChevronRight, CalendarDays, Sword, Shield, Crown, Trophy, LockKeyhole, Sparkles, PackageOpen, Backpack, Gem, Coins, Shirt, Footprints, CircleDot
 } from "lucide-react";
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip,
@@ -15,6 +15,82 @@ const GOAL = 1850;
 const PROTEIN_GOAL = 160;
 const WATER_GOAL = 3000;
 const CAFFEINE_GOAL = 400;
+
+
+const CHEST_KEY = "nutriclock_rpg_chests_v1";
+const INVENTORY_KEY = "nutriclock_rpg_inventory_v1";
+const EQUIPMENT_KEY = "nutriclock_rpg_equipment_v1";
+const CLAIMS_KEY = "nutriclock_rpg_claims_v1";
+
+const RARITIES = [
+  {id:"normal",name:"Normal",color:"#b9c5d3",weight:60,multiplier:1},
+  {id:"rare",name:"Raro",color:"#4ea1ff",weight:23,multiplier:1.35},
+  {id:"ultrarare",name:"Ultrararo",color:"#58e0b0",weight:10,multiplier:1.8},
+  {id:"epic",name:"Épico",color:"#b16cff",weight:5,multiplier:2.4},
+  {id:"legendary",name:"Lendário",color:"#ffc857",weight:1.7,multiplier:3.2},
+  {id:"mythic",name:"Mítico",color:"#ff596f",weight:.3,multiplier:4.5}
+];
+
+const ITEM_BASES = [
+  {name:"Bastão de Bambu",icon:"🦯",slot:"weapon",stats:{strength:3,discipline:1}},
+  {name:"Lança da Selva",icon:"🗡️",slot:"weapon",stats:{strength:4,determination:2}},
+  {name:"Elmo Tribal",icon:"🪖",slot:"head",stats:{resistance:3,discipline:2}},
+  {name:"Coroa Ancestral",icon:"👑",slot:"head",stats:{wisdom:5,discipline:3}},
+  {name:"Armadura de Folhas",icon:"🥋",slot:"body",stats:{vitality:4,balance:2}},
+  {name:"Peitoral do Guardião",icon:"🦺",slot:"body",stats:{resistance:5,vitality:3}},
+  {name:"Botas do Explorador",icon:"🥾",slot:"feet",stats:{energy:4,determination:2}},
+  {name:"Sandálias do Vento",icon:"👟",slot:"feet",stats:{energy:5,balance:2}},
+  {name:"Anel da Vitalidade",icon:"💍",slot:"ring",stats:{vitality:5}},
+  {name:"Anel da Disciplina",icon:"💍",slot:"ring",stats:{discipline:5}},
+  {name:"Amuleto da Fonte",icon:"📿",slot:"amulet",stats:{balance:4,wisdom:2}},
+  {name:"Totem do Gorila",icon:"🗿",slot:"amulet",stats:{strength:3,determination:4}}
+];
+
+const SLOT_LABELS = {
+  weapon:"Arma",head:"Cabeça",body:"Corpo",feet:"Pés",ring:"Anel",amulet:"Amuleto"
+};
+
+const STAT_LABELS = {
+  strength:"Força",discipline:"Disciplina",vitality:"Vitalidade",
+  energy:"Energia",resistance:"Resistência",balance:"Equilíbrio",
+  determination:"Determinação",wisdom:"Sabedoria"
+};
+
+function safeRead(key,fallback){
+  if(typeof window==="undefined") return fallback;
+  try{return JSON.parse(localStorage.getItem(key)||JSON.stringify(fallback));}
+  catch{return fallback;}
+}
+
+function rollRarity(chestTier="normal"){
+  const tierBonus={normal:0,rare:8,epic:16,legendary:24,mythic:34}[chestTier]||0;
+  const adjusted=RARITIES.map((rarity,index)=>({
+    ...rarity,
+    adjusted:Math.max(.05,rarity.weight*(1+(index*tierBonus/100)))
+  }));
+  const total=adjusted.reduce((sum,r)=>sum+r.adjusted,0);
+  let roll=Math.random()*total;
+  for(const rarity of adjusted){
+    roll-=rarity.adjusted;
+    if(roll<=0) return rarity;
+  }
+  return adjusted[0];
+}
+
+function generateItem(chestTier){
+  const rarity=rollRarity(chestTier);
+  const base=ITEM_BASES[Math.floor(Math.random()*ITEM_BASES.length)];
+  const stats=Object.fromEntries(
+    Object.entries(base.stats).map(([key,value])=>[
+      key,Math.max(1,Math.round(value*rarity.multiplier))
+    ])
+  );
+  return {
+    id:`item-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    ...base,stats,rarity:rarity.id,rarityName:rarity.name,
+    rarityColor:rarity.color,obtainedAt:new Date().toISOString()
+  };
+}
 
 const RECIPES = [
   {name:"Omelete proteico com frango",calories:360,protein:42,time:"15 min",ingredients:["2 ovos","100 g de frango","Tomate","Cebola"],steps:["Bata os ovos.","Misture o recheio.","Cozinhe em frigideira antiaderente."]},
@@ -82,13 +158,29 @@ export default function Page(){
   const [status,setStatus]=useState("Sincronizando...");
   const [editing,setEditing]=useState(null);
   const [form,setForm]=useState({type:"meal",description:"",calories:0,protein_g:0,water_ml:0,caffeine_mg:0,weight_kg:"",occurred_at:""});
+  const [chests,setChests]=useState([]);
+  const [inventory,setInventory]=useState([]);
+  const [equipment,setEquipment]=useState({});
+  const [claims,setClaims]=useState({});
+  const [lootReveal,setLootReveal]=useState(null);
+  const [rpgTab,setRpgTab]=useState("journey");
+
 
   useEffect(()=>{
+    setChests(safeRead(CHEST_KEY,[]));
+    setInventory(safeRead(INVENTORY_KEY,[]));
+    setEquipment(safeRead(EQUIPMENT_KEY,{}));
+    setClaims(safeRead(CLAIMS_KEY,{}));
     load();
     const retry=setTimeout(load,1800);
     const timer=setInterval(load,15000);
     return()=>{clearTimeout(retry);clearInterval(timer)};
   },[selectedDate]);
+
+  useEffect(()=>{if(typeof window!=="undefined") localStorage.setItem(CHEST_KEY,JSON.stringify(chests));},[chests]);
+  useEffect(()=>{if(typeof window!=="undefined") localStorage.setItem(INVENTORY_KEY,JSON.stringify(inventory));},[inventory]);
+  useEffect(()=>{if(typeof window!=="undefined") localStorage.setItem(EQUIPMENT_KEY,JSON.stringify(equipment));},[equipment]);
+  useEffect(()=>{if(typeof window!=="undefined") localStorage.setItem(CLAIMS_KEY,JSON.stringify(claims));},[claims]);
 
   async function api(path,options={}){
     const response=await fetch(path,{...options,headers:{...(options.headers||{})},cache:"no-store"});
@@ -154,6 +246,51 @@ export default function Page(){
     });
     setTimeout(()=>document.querySelector(".formPanel")?.scrollIntoView({behavior:"smooth",block:"center"}),50);
   }
+
+
+  function awardChest(type,tier,title){
+    const chest={
+      id:`chest-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      type,tier,title,earnedAt:new Date().toISOString()
+    };
+    setChests(current=>[...current,chest]);
+  }
+
+  function openChest(chest){
+    const item=generateItem(chest.tier);
+    setChests(current=>current.filter(entry=>entry.id!==chest.id));
+    setInventory(current=>[item,...current]);
+    setLootReveal({chest,item});
+  }
+
+  function equipItem(item){
+    setEquipment(current=>({...current,[item.slot]:item.id}));
+  }
+
+  function unequipSlot(slot){
+    setEquipment(current=>{
+      const next={...current};
+      delete next[slot];
+      return next;
+    });
+  }
+
+  const equippedItems=useMemo(
+    ()=>Object.entries(equipment)
+      .map(([slot,id])=>inventory.find(item=>item.id===id))
+      .filter(Boolean),
+    [equipment,inventory]
+  );
+
+  const totalStats=useMemo(()=>{
+    const result={};
+    for(const item of equippedItems){
+      for(const [stat,value] of Object.entries(item.stats)){
+        result[stat]=(result[stat]||0)+value;
+      }
+    }
+    return result;
+  },[equippedItems]);
 
   const totals=summary?.totals||{consumed:0,exercise:0,net:0,remaining:GOAL,protein_g:0,water_ml:0,caffeine_mg:0,weight_kg:null};
   const entries=summary?.entries||[];
@@ -226,6 +363,34 @@ export default function Page(){
     return {missions,totalXp,average,level,stage,progress,locations,achievements,boss};
   },[historyData]);
 
+  useEffect(()=>{
+    if(!historyData.length) return;
+    const today=pet.missions.at(-1);
+    if(!today) return;
+    const key=today.key;
+    const rewards=[
+      {claim:`${key}:water`,done:today.water>=2500,type:"water",tier:"normal",title:"Baú da Fonte Ancestral"},
+      {claim:`${key}:protein`,done:today.protein>=130,type:"protein",tier:"normal",title:"Baú da Força do Primata"},
+      {claim:`${key}:training`,done:today.exercise>0,type:"training",tier:"rare",title:"Baú do Combate"},
+      {claim:`${key}:balance`,done:today.net>0&&today.net<=GOAL,type:"balance",tier:"normal",title:"Baú do Equilíbrio"}
+    ];
+    const earned=rewards.filter(reward=>reward.done&&!claims[reward.claim]);
+    if(!earned.length) return;
+    setClaims(current=>{
+      const next={...current};
+      earned.forEach(reward=>{next[reward.claim]=true;});
+      return next;
+    });
+    setChests(current=>[
+      ...current,
+      ...earned.map((reward,index)=>({
+        id:`chest-${Date.now()}-${index}-${Math.random().toString(36).slice(2)}`,
+        type:reward.type,tier:reward.tier,title:reward.title,earnedAt:new Date().toISOString()
+      }))
+    ]);
+  },[historyData,pet.missions,claims]);
+
+
   const dateLabel=new Date(`${selectedDate}T12:00:00`).toLocaleDateString("pt-BR",{weekday:"long",day:"2-digit",month:"long",year:"numeric"});
 
   return <main className="shell">
@@ -297,6 +462,9 @@ export default function Page(){
           <div className="characterAura"/>
           <div className="character">{pet.stage.emoji}</div>
           <span className="levelBadge">Nível {pet.level}</span>
+          <div className="equippedVisuals">
+            {equippedItems.slice(0,3).map(item=><span key={item.id} title={item.name}>{item.icon}</span>)}
+          </div>
         </div>
         <div className="rpgHeroText">
           <span className="rpgEyebrow">Jornada do Guardião da Selva</span>
@@ -304,46 +472,126 @@ export default function Page(){
           <p className="rpgTitle">{pet.stage.title}</p>
           <div className="xpHeader"><strong>{pet.totalXp} XP</strong><span>{pet.level===6?"Nível máximo":"Rumo à próxima evolução"}</span></div>
           <div className="rpgXp"><span style={{width:`${pet.progress}%`}}/></div>
+          <div className="quickStats">
+            {Object.entries(totalStats).slice(0,4).map(([stat,value])=><span key={stat}>{STAT_LABELS[stat]} +{value}</span>)}
+          </div>
         </div>
       </div>
 
-      <section className="rpgSummary">
-        <article className="panel rpgStat"><Sword/><div><span>XP semanal</span><b>{pet.totalXp}</b></div></article>
-        <article className="panel rpgStat"><Shield/><div><span>Moral</span><b>{pet.average>=75?"Alta":pet.average>=50?"Estável":"Baixa"}</b></div></article>
-        <article className="panel rpgStat"><Crown/><div><span>Classe</span><b>{pet.stage.title}</b></div></article>
-      </section>
+      <nav className="rpgTabs">
+        <button className={rpgTab==="journey"?"active":""} onClick={()=>setRpgTab("journey")}><Sword/>Jornada</button>
+        <button className={rpgTab==="chests"?"active":""} onClick={()=>setRpgTab("chests")}><PackageOpen/>Baús <b>{chests.length}</b></button>
+        <button className={rpgTab==="inventory"?"active":""} onClick={()=>setRpgTab("inventory")}><Backpack/>Inventário <b>{inventory.length}</b></button>
+      </nav>
 
-      <article className="panel questBoard">
-        <div className="panelHead"><div><h2><Sword size={20}/>Mapa da Jornada</h2><p>As etapas substituem os dias da semana.</p></div><strong className="questScore">{pet.average}/100</strong></div>
-        <div className="questPath">
-          {pet.missions.map((mission,index)=><article className={`questNode ${mission.xp>=70?"completed":mission.xp>=40?"active":"danger"}`} key={mission.key}>
-            <div className="questIcon">{mission.xp>=70?"🏆":mission.xp>=40?"⚔️":"💀"}</div>
-            <div className="questInfo"><span>{pet.locations[index]}</span><strong>Missão {index+1}</strong><small>{mission.xp} XP</small></div>
-            <div className="questLine"/>
+      {rpgTab==="journey"&&<>
+        <section className="rpgSummary">
+          <article className="panel rpgStat"><Sword/><div><span>XP semanal</span><b>{pet.totalXp}</b></div></article>
+          <article className="panel rpgStat"><Shield/><div><span>Moral</span><b>{pet.average>=75?"Alta":pet.average>=50?"Estável":"Baixa"}</b></div></article>
+          <article className="panel rpgStat"><Crown/><div><span>Classe</span><b>{pet.stage.title}</b></div></article>
+        </section>
+
+        <article className="panel questBoard">
+          <div className="panelHead"><div><h2><Sword size={20}/>Mapa da Jornada</h2><p>As etapas substituem os dias da semana.</p></div><strong className="questScore">{pet.average}/100</strong></div>
+          <div className="questPath">
+            {pet.missions.map((mission,index)=><article className={`questNode ${mission.xp>=70?"completed":mission.xp>=40?"active":"danger"}`} key={mission.key}>
+              <div className="questIcon">{mission.xp>=70?"🏆":mission.xp>=40?"⚔️":"💀"}</div>
+              <div className="questInfo"><span>{pet.locations[index]}</span><strong>Missão {index+1}</strong><small>{mission.xp} XP</small></div>
+              <div className="questLine"/>
+            </article>)}
+          </div>
+        </article>
+
+        <section className="rpgColumns">
+          <article className="panel">
+            <div className="panelHead"><div><h2>Missões atuais</h2><p>Objetivos concluídos podem gerar baús.</p></div><Sparkles/></div>
+            {(pet.missions.at(-1)?.quests||[]).map(q=><div className={`missionRow ${q.done?"done":""}`} key={q.id}><div className="missionStatus">{q.done?"✓":"○"}</div><div><strong>{q.name}</strong><small>{q.done?`+${q.xp} XP • recompensa processada`:"Pendente"}</small></div></div>)}
+            {(pet.missions.at(-1)?.penalties||[]).map(p=><div className="missionRow penalty" key={p.name}><div className="missionStatus">−</div><div><strong>{p.name}</strong><small>{p.xp} XP</small></div></div>)}
+          </article>
+          <article className="panel bossPanel">
+            <div className="bossCreature">{pet.boss.emoji}</div><span className="rpgEyebrow">Chefe semanal</span><h2>{pet.boss.name}</h2><p>{pet.boss.message}</p><div className={`bossStatus ${pet.boss.status==="Derrotado"?"won":""}`}>{pet.boss.status}</div>
+          </article>
+        </section>
+
+        <article className="panel">
+          <div className="panelHead"><div><h2><Trophy size={20}/>Conquistas</h2><p>Relíquias desbloqueadas pela sua jornada.</p></div></div>
+          <div className="achievementGrid">{pet.achievements.map(a=><article className={`achievement ${a.unlocked?"unlocked":"locked"}`} key={a.name}><div>{a.unlocked?a.icon:<LockKeyhole/>}</div><strong>{a.name}</strong><small>{a.unlocked?"Desbloqueada":"Bloqueada"}</small></article>)}</div>
+        </article>
+      </>}
+
+      {rpgTab==="chests"&&<section className="lootPage">
+        <div className="lootIntro panel">
+          <div><span className="rpgEyebrow">Tesouro acumulado</span><h2>Baús aguardando abertura</h2><p>Complete água, proteína, treino e equilíbrio calórico. O baú fica guardado até você abrir.</p></div>
+          <PackageOpen size={54}/>
+        </div>
+
+        <div className="rarityOdds panel">
+          <h3>Probabilidades de drop</h3>
+          <div>{RARITIES.map(r=><span key={r.id} style={{borderColor:r.color,color:r.color}}>{r.name} {r.weight}%</span>)}</div>
+        </div>
+
+        {!chests.length&&<div className="panel emptyLoot"><PackageOpen size={46}/><h3>Nenhum baú guardado</h3><p>Complete uma missão saudável para receber seu próximo baú.</p></div>}
+
+        <div className="chestGrid">
+          {chests.map(chest=><article className={`chestCard ${chest.tier}`} key={chest.id}>
+            <div className="chestIcon">🧰</div>
+            <span>{chest.tier==="rare"?"Baú Raro":"Baú de Missão"}</span>
+            <h3>{chest.title}</h3>
+            <small>Guardado em {new Date(chest.earnedAt).toLocaleDateString("pt-BR")}</small>
+            <button onClick={()=>openChest(chest)}><PackageOpen/>Abrir baú</button>
           </article>)}
         </div>
-      </article>
+      </section>}
 
-      <section className="rpgColumns">
+      {rpgTab==="inventory"&&<section className="inventoryPage">
+        <article className="panel equippedPanel">
+          <div className="panelHead"><div><h2><Shirt/>Equipamentos</h2><p>Itens equipados concedem atributos ao seu primata.</p></div></div>
+          <div className="equipmentGrid">
+            {Object.entries(SLOT_LABELS).map(([slot,label])=>{
+              const item=inventory.find(entry=>entry.id===equipment[slot]);
+              return <article className="equipmentSlot" key={slot}>
+                <span>{label}</span>
+                {item?<><div className="itemIcon">{item.icon}</div><strong style={{color:item.rarityColor}}>{item.name}</strong><small>{item.rarityName}</small><button onClick={()=>unequipSlot(slot)}>Remover</button></>:<><div className="emptySlot"><CircleDot/></div><strong>Vazio</strong><small>Equipe um item</small></>}
+              </article>;
+            })}
+          </div>
+        </article>
+
+        <article className="panel statsPanel">
+          <h2>Atributos do equipamento</h2>
+          <div className="statGrid">
+            {Object.entries(STAT_LABELS).map(([stat,label])=><div key={stat}><span>{label}</span><b>{totalStats[stat]||0}</b></div>)}
+          </div>
+        </article>
+
         <article className="panel">
-          <div className="panelHead"><div><h2>Missões atuais</h2><p>Boas práticas concedem experiência.</p></div><Sparkles/></div>
-          {(pet.missions.at(-1)?.quests||[]).map(q=><div className={`missionRow ${q.done?"done":""}`} key={q.id}><div className="missionStatus">{q.done?"✓":"○"}</div><div><strong>{q.name}</strong><small>{q.done?`+${q.xp} XP`:"Pendente"}</small></div></div>)}
-          {(pet.missions.at(-1)?.penalties||[]).map(p=><div className="missionRow penalty" key={p.name}><div className="missionStatus">−</div><div><strong>{p.name}</strong><small>{p.xp} XP</small></div></div>)}
+          <div className="panelHead"><div><h2><Backpack/>Mochila</h2><p>{inventory.length} item(ns) encontrados.</p></div></div>
+          {!inventory.length&&<div className="emptyLoot"><Gem size={44}/><h3>Inventário vazio</h3><p>Abra baús para encontrar equipamentos.</p></div>}
+          <div className="inventoryGrid">
+            {inventory.map(item=><article className="itemCard" style={{borderColor:item.rarityColor}} key={item.id}>
+              <div className="itemIcon">{item.icon}</div>
+              <span style={{color:item.rarityColor}}>{item.rarityName}</span>
+              <h3>{item.name}</h3>
+              <small>{SLOT_LABELS[item.slot]}</small>
+              <div className="itemStats">{Object.entries(item.stats).map(([stat,value])=><b key={stat}>{STAT_LABELS[stat]} +{value}</b>)}</div>
+              <button onClick={()=>equipItem(item)}>{equipment[item.slot]===item.id?"Equipado":"Equipar"}</button>
+            </article>)}
+          </div>
         </article>
-        <article className="panel bossPanel">
-          <div className="bossCreature">{pet.boss.emoji}</div><span className="rpgEyebrow">Chefe semanal</span><h2>{pet.boss.name}</h2><p>{pet.boss.message}</p><div className={`bossStatus ${pet.boss.status==="Derrotado"?"won":""}`}>{pet.boss.status}</div>
-        </article>
-      </section>
+      </section>}
 
-      <article className="panel">
-        <div className="panelHead"><div><h2><Trophy size={20}/>Conquistas</h2><p>Relíquias desbloqueadas pela sua jornada.</p></div></div>
-        <div className="achievementGrid">{pet.achievements.map(a=><article className={`achievement ${a.unlocked?"unlocked":"locked"}`} key={a.name}><div>{a.unlocked?a.icon:<LockKeyhole/>}</div><strong>{a.name}</strong><small>{a.unlocked?"Desbloqueada":"Bloqueada"}</small></article>)}</div>
-      </article>
-
-      <article className="panel evolutionPanel">
-        <div className="panelHead"><div><h2>Evolução do Primata</h2><p>Do Macaco Bebê ao Gorila Mestre.</p></div></div>
-        <div className="evolutionTrack">{[["🐒","Macaco Bebê"],["🐵","Macaco Jovem"],["🙉","Escalador Tribal"],["🦧","Orangotango Sábio"],["🦍","Gorila Guerreiro"],["🦍","Gorila Mestre"]].map((s,i)=><article className={`evolutionStage ${pet.level>=i+1?"unlocked":""}`} key={s[1]}><div>{s[0]}</div><strong>{s[1]}</strong><small>Nível {i+1}</small></article>)}</div>
-      </article>
+      {lootReveal&&<div className="lootModal" onClick={()=>setLootReveal(null)}>
+        <div className="lootReveal" onClick={event=>event.stopPropagation()} style={{borderColor:lootReveal.item.rarityColor}}>
+          <Sparkles size={34}/>
+          <span className="rpgEyebrow">Drop encontrado</span>
+          <div className="revealIcon">{lootReveal.item.icon}</div>
+          <h2>{lootReveal.item.name}</h2>
+          <strong style={{color:lootReveal.item.rarityColor}}>{lootReveal.item.rarityName}</strong>
+          <div className="revealStats">{Object.entries(lootReveal.item.stats).map(([stat,value])=><span key={stat}>{STAT_LABELS[stat]} +{value}</span>)}</div>
+          <button onClick={()=>{equipItem(lootReveal.item);setLootReveal(null);setRpgTab("inventory")}}>Equipar agora</button>
+          <button className="secondary" onClick={()=>setLootReveal(null)}>Guardar na mochila</button>
+        </div>
+      </div>}
     </section>}
 
     {active==="profile"&&<section className="page"><div className="hero"><User size={42}/><div><span>Perfil</span><h2>Metas atuais</h2></div></div><div className="profileGrid"><article className="panel"><h3>Calorias</h3><b>{GOAL} kcal</b></article><article className="panel"><h3>Proteína</h3><b>{PROTEIN_GOAL} g</b></article><article className="panel"><h3>Água</h3><b>{WATER_GOAL} ml</b></article><article className="panel"><h3>Cafeína</h3><b>{CAFFEINE_GOAL} mg</b></article></div></section>}

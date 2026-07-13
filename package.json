@@ -1,6 +1,6 @@
 {
-  "name": "nutriclock-v7-rpg",
-  "version": "7.1.0",
+  "name": "nutriclock-v7-rpg-loot",
+  "version": "7.2.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
