@@ -11,11 +11,64 @@ import {
   ReferenceLine, CartesianGrid, LineChart, Line
 } from "recharts";
 
-const GOAL = 1850;
-const PROTEIN_GOAL = 160;
-const WATER_GOAL = 3000;
-const CAFFEINE_GOAL = 400;
+const DEFAULT_PROFILE = {
+  name:"Rafael",
+  sex:"male",
+  age:24,
+  heightCm:170,
+  weightKg:93.7,
+  activity:"light",
+  objective:"lose",
+  pace:"moderate",
+  caffeineGoal:400
+};
 
+const PROFILE_KEY = "nutriclock_profile_v2";
+
+const ACTIVITY_FACTORS = {
+  sedentary:1.2,
+  light:1.375,
+  moderate:1.55,
+  high:1.725
+};
+
+function calculateGoals(profile){
+  const weight=Math.max(35,Number(profile.weightKg)||70);
+  const height=Math.max(130,Number(profile.heightCm)||170);
+  const age=Math.max(16,Number(profile.age)||30);
+  const sexOffset=profile.sex==="female"?-161:5;
+  const bmr=(10*weight)+(6.25*height)-(5*age)+sexOffset;
+  const tdee=Math.round(bmr*(ACTIVITY_FACTORS[profile.activity]||1.375));
+  const adjustments={
+    lose:{slow:-250,moderate:-450,fast:-650},
+    maintain:{slow:0,moderate:0,fast:0},
+    gain:{slow:180,moderate:300,fast:450},
+    muscle:{slow:150,moderate:250,fast:350}
+  };
+  const calorieGoal=Math.max(1200,Math.round(tdee+(adjustments[profile.objective]?.[profile.pace]||0)));
+  const proteinFactor=profile.objective==="muscle"||profile.objective==="gain"?2.0:profile.objective==="lose"?1.8:1.6;
+  const proteinGoal=Math.round(weight*proteinFactor);
+  const waterGoal=Math.round((weight*35)/100)*100;
+  return {
+    bmr:Math.round(bmr),
+    tdee,
+    calorieGoal,
+    proteinGoal,
+    waterGoal:Math.max(2000,waterGoal),
+    caffeineGoal:Number(profile.caffeineGoal)||400
+  };
+}
+
+function seededShuffle(items,seed){
+  const copy=[...items];
+  let value=seed||1;
+  for(let i=copy.length-1;i>0;i--){
+    value=(value*9301+49297)%233280;
+    const j=Math.floor((value/233280)*(i+1));
+    [copy[i],copy[j]]=[copy[j],copy[i]];
+  }
+  return copy;
+}
 
 const CHEST_KEY = "nutriclock_rpg_chests_v1";
 const INVENTORY_KEY = "nutriclock_rpg_inventory_v1";
@@ -93,10 +146,22 @@ function generateItem(chestTier){
 }
 
 const RECIPES = [
-  {name:"Omelete proteico com frango",calories:360,protein:42,time:"15 min",ingredients:["2 ovos","100 g de frango","Tomate","Cebola"],steps:["Bata os ovos.","Misture o recheio.","Cozinhe em frigideira antiaderente."]},
-  {name:"Bowl de frango, arroz e feijão",calories:520,protein:46,time:"20 min",ingredients:["120 g de frango","100 g de arroz","70 g de feijão","Salada"],steps:["Grelhe o frango.","Monte o prato.","Finalize com salada."]},
-  {name:"Sanduíche de atum",calories:390,protein:32,time:"10 min",ingredients:["2 fatias de pão integral","Atum","Tomate","Folhas"],steps:["Misture o atum.","Monte o sanduíche.","Sirva."]},
-  {name:"Iogurte proteico com frutas",calories:260,protein:20,time:"5 min",ingredients:["Iogurte proteico","Banana","Morangos","Aveia"],steps:["Corte as frutas.","Misture tudo.","Sirva gelado."]}
+  {id:"omelete-frango",name:"Omelete proteico com frango",image:"/recipes/omelete.svg",calories:360,protein:42,time:"15 min",goals:["lose","maintain","muscle"],ingredients:["2 ovos","100 g de frango","Tomate","Cebola"],steps:["Bata os ovos.","Misture o recheio.","Cozinhe em frigideira antiaderente."]},
+  {id:"bowl-frango",name:"Bowl de frango, arroz e feijão",image:"/recipes/bowl-frango.svg",calories:520,protein:46,time:"20 min",goals:["maintain","gain","muscle"],ingredients:["120 g de frango","100 g de arroz","70 g de feijão","Salada"],steps:["Grelhe o frango.","Monte o prato.","Finalize com salada."]},
+  {id:"sanduiche-atum",name:"Sanduíche de atum",image:"/recipes/sanduiche-atum.svg",calories:390,protein:32,time:"10 min",goals:["lose","maintain","muscle"],ingredients:["2 fatias de pão integral","Atum","Tomate","Folhas"],steps:["Misture o atum.","Monte o sanduíche.","Sirva."]},
+  {id:"iogurte-frutas",name:"Iogurte proteico com frutas",image:"/recipes/iogurte-frutas.svg",calories:260,protein:20,time:"5 min",goals:["lose","maintain"],ingredients:["Iogurte proteico","Banana","Morangos","Aveia"],steps:["Corte as frutas.","Misture tudo.","Sirva gelado."]},
+  {id:"tapioca-frango",name:"Tapioca com frango e queijo",image:"/recipes/tapioca-frango.svg",calories:430,protein:35,time:"12 min",goals:["maintain","gain","muscle"],ingredients:["Goma de tapioca","Frango desfiado","Queijo","Tomate"],steps:["Prepare a tapioca.","Adicione o recheio.","Dobre e aqueça."]},
+  {id:"salada-frango",name:"Salada completa com frango",image:"/recipes/salada-frango.svg",calories:310,protein:38,time:"15 min",goals:["lose","maintain"],ingredients:["Frango","Folhas","Tomate","Pepino","Milho"],steps:["Grelhe o frango.","Monte a salada.","Tempere ao servir."]},
+  {id:"carne-pure",name:"Carne magra com purê",image:"/recipes/carne-pure.svg",calories:610,protein:45,time:"30 min",goals:["gain","muscle","maintain"],ingredients:["Carne magra","Purê de batata","Legumes"],steps:["Grelhe a carne.","Prepare o purê.","Sirva com legumes."]},
+  {id:"panqueca-banana",name:"Panqueca de banana e aveia",image:"/recipes/panqueca-banana.svg",calories:330,protein:18,time:"12 min",goals:["maintain","gain"],ingredients:["Banana","2 ovos","Aveia","Canela"],steps:["Amasse a banana.","Misture os ingredientes.","Doure dos dois lados."]},
+  {id:"massa-atum",name:"Massa integral com atum",image:"/recipes/massa-atum.svg",calories:560,protein:39,time:"22 min",goals:["gain","muscle"],ingredients:["Massa integral","Atum","Molho de tomate","Ervas"],steps:["Cozinhe a massa.","Prepare o molho.","Misture e sirva."]},
+  {id:"wrap-frango",name:"Wrap de frango e avocado",image:"/recipes/wrap-frango.svg",calories:450,protein:37,time:"12 min",goals:["lose","maintain","muscle"],ingredients:["Wrap integral","Frango","Avocado","Folhas"],steps:["Aqueça o wrap.","Adicione o recheio.","Enrole e sirva."]},
+  {id:"arroz-ovo",name:"Arroz, ovos e legumes",image:"/recipes/arroz-ovo.svg",calories:470,protein:27,time:"18 min",goals:["maintain","gain"],ingredients:["Arroz","2 ovos","Legumes","Cebolinha"],steps:["Refogue os legumes.","Adicione arroz e ovos.","Finalize com cebolinha."]},
+  {id:"sopa-legumes",name:"Sopa de legumes com carne",image:"/recipes/sopa-legumes.svg",calories:340,protein:30,time:"35 min",goals:["lose","maintain"],ingredients:["Carne magra","Abóbora","Cenoura","Chuchu"],steps:["Cozinhe a carne.","Adicione os legumes.","Ajuste os temperos."]},
+  {id:"frango-batata",name:"Frango assado com batata",image:"/recipes/frango-batata.svg",calories:590,protein:51,time:"40 min",goals:["gain","muscle"],ingredients:["Peito de frango","Batata","Alecrim","Azeite"],steps:["Tempere o frango.","Asse com as batatas.","Sirva com salada."]},
+  {id:"overnight-oats",name:"Overnight oats proteico",image:"/recipes/overnight-oats.svg",calories:380,protein:26,time:"5 min",goals:["lose","maintain","muscle"],ingredients:["Aveia","Iogurte","Whey","Frutas"],steps:["Misture os ingredientes.","Leve à geladeira.","Sirva no dia seguinte."]},
+  {id:"risoto-frango",name:"Risoto leve de frango",image:"/recipes/risoto-frango.svg",calories:540,protein:41,time:"28 min",goals:["maintain","gain","muscle"],ingredients:["Arroz arbóreo","Frango","Caldo","Parmesão"],steps:["Refogue o arroz.","Adicione caldo aos poucos.","Finalize com frango."]},
+  {id:"quiche-atum",name:"Quiche rápida de atum",image:"/recipes/quiche-atum.svg",calories:410,protein:34,time:"25 min",goals:["lose","maintain","muscle"],ingredients:["Ovos","Atum","Creme de ricota","Tomate"],steps:["Misture tudo.","Coloque em forma.","Asse até firmar."]}
 ];
 
 function dateKey(date=new Date()){
@@ -124,7 +189,7 @@ function entryValue(entry){
   if(entry.type==="weight") return entry.weight_kg?`${Number(entry.weight_kg).toFixed(1)} kg`:"—";
   return `${Math.round(Number(entry.calories||0))} kcal`;
 }
-function scoreDay(entries,key){
+function scoreDay(entries,key,calorieGoal){
   const day=entries.filter(e=>e.occurred_at?.slice(0,10)===key);
   const consumed=day.filter(e=>e.type==="meal").reduce((s,e)=>s+Number(e.calories||0),0);
   const exercise=day.filter(e=>e.type==="exercise").reduce((s,e)=>s+Math.abs(Number(e.calories||0)),0);
@@ -133,7 +198,7 @@ function scoreDay(entries,key){
   const net=consumed-exercise;
   const quests=[
     {id:"registro",name:"Diário do Aventureiro",done:day.length>0,xp:10},
-    {id:"calorias",name:"Equilíbrio da Selva",done:net>0&&net<=GOAL,xp:25},
+    {id:"calorias",name:"Equilíbrio da Selva",done:net>0&&net<=calorieGoal,xp:25},
     {id:"proteina",name:"Força do Primata",done:protein>=130,xp:25},
     {id:"agua",name:"Fonte Ancestral",done:water>=2500,xp:20},
     {id:"treino",name:"Prova de Combate",done:exercise>0,xp:20}
@@ -141,8 +206,8 @@ function scoreDay(entries,key){
   let xp=quests.filter(q=>q.done).reduce((sum,q)=>sum+q.xp,0);
   const penalties=[];
   if(day.length===0) penalties.push({name:"Acampamento abandonado",xp:-10});
-  if(net>GOAL+300) penalties.push({name:"Banquete do Caos",xp:-25});
-  else if(net>GOAL) penalties.push({name:"Excesso na jornada",xp:-10});
+  if(net>calorieGoal+300) penalties.push({name:"Banquete do Caos",xp:-25});
+  else if(net>calorieGoal) penalties.push({name:"Excesso na jornada",xp:-10});
   if(day.length>0&&protein<90) penalties.push({name:"Força insuficiente",xp:-10});
   if(day.length>0&&water<1200) penalties.push({name:"Sede da floresta",xp:-10});
   xp+=penalties.reduce((sum,p)=>sum+p.xp,0);
@@ -166,6 +231,11 @@ export default function Page(){
   const [rpgTab,setRpgTab]=useState("journey");
   const [companionReaction,setCompanionReaction]=useState(0);
   const [companionMessage,setCompanionMessage]=useState("Vamos conquistar a selva juntos!");
+  const [profile,setProfile]=useState(DEFAULT_PROFILE);
+  const [profileDraft,setProfileDraft]=useState(DEFAULT_PROFILE);
+  const [profileSaved,setProfileSaved]=useState(false);
+  const [recipeRotation,setRecipeRotation]=useState(0);
+
 
 
   useEffect(()=>{
@@ -173,6 +243,9 @@ export default function Page(){
     setInventory(safeRead(INVENTORY_KEY,[]));
     setEquipment(safeRead(EQUIPMENT_KEY,{}));
     setClaims(safeRead(CLAIMS_KEY,{}));
+    const savedProfile=safeRead(PROFILE_KEY,DEFAULT_PROFILE);
+    setProfile(savedProfile);
+    setProfileDraft(savedProfile);
     load();
     const retry=setTimeout(load,1800);
     const timer=setInterval(load,15000);
@@ -183,6 +256,7 @@ export default function Page(){
   useEffect(()=>{if(typeof window!=="undefined") localStorage.setItem(INVENTORY_KEY,JSON.stringify(inventory));},[inventory]);
   useEffect(()=>{if(typeof window!=="undefined") localStorage.setItem(EQUIPMENT_KEY,JSON.stringify(equipment));},[equipment]);
   useEffect(()=>{if(typeof window!=="undefined") localStorage.setItem(CLAIMS_KEY,JSON.stringify(claims));},[claims]);
+  useEffect(()=>{if(typeof window!=="undefined") localStorage.setItem(PROFILE_KEY,JSON.stringify(profile));},[profile]);
 
   async function api(path,options={}){
     const response=await fetch(path,{...options,headers:{...(options.headers||{})},cache:"no-store"});
@@ -307,7 +381,17 @@ export default function Page(){
     setCompanionReaction(value=>value+1);
   }
 
-  const totals=summary?.totals||{consumed:0,exercise:0,net:0,remaining:GOAL,protein_g:0,water_ml:0,caffeine_mg:0,weight_kg:null};
+  const goals=useMemo(()=>calculateGoals(profile),[profile]);
+
+  function saveProfile(event){
+    event.preventDefault();
+    setProfile({...profileDraft});
+    setProfileSaved(true);
+    setTimeout(()=>setProfileSaved(false),2200);
+  }
+
+  const rawTotals=summary?.totals||{consumed:0,exercise:0,net:0,remaining:goals.calorieGoal,protein_g:0,water_ml:0,caffeine_mg:0,weight_kg:null};
+  const totals={...rawTotals,goal:goals.calorieGoal,remaining:goals.calorieGoal-Number(rawTotals.net||0)};
   const entries=summary?.entries||[];
 
   const monthCalories=useMemo(()=>{
@@ -317,7 +401,7 @@ export default function Page(){
       if(e.type==="meal") map[key]=(map[key]||0)+Number(e.calories||0);
     }
     return map;
-  },[historyData]);
+  },[historyData,goals.calorieGoal]);
 
   const last7=useMemo(()=>{
     const rows=[];
@@ -340,15 +424,22 @@ export default function Page(){
   ,[historyData]);
 
   const recipes=useMemo(()=>{
-    const target=Math.max(220,Math.min(700,Number(totals.remaining||0)));
-    return [...RECIPES].sort((a,b)=>Math.abs(a.calories-target)-Math.abs(b.calories-target)).slice(0,3);
-  },[totals.remaining]);
+    const target=Math.max(220,Math.min(profile.objective==="gain"||profile.objective==="muscle"?900:700,Number(totals.remaining||0)));
+    const daySeed=Number(dateKey().replaceAll("-",""))+recipeRotation*97;
+    const preferred=RECIPES.filter(recipe=>recipe.goals.includes(profile.objective));
+    const pool=preferred.length>=6?preferred:RECIPES;
+    const ranked=pool
+      .map(recipe=>({...recipe,score:Math.abs(recipe.calories-target)-(recipe.protein*2)}))
+      .sort((a,b)=>a.score-b.score);
+    const shortlist=ranked.slice(0,Math.min(10,ranked.length));
+    return seededShuffle(shortlist,daySeed).slice(0,6);
+  },[totals.remaining,profile.objective,recipeRotation]);
 
   const pet=useMemo(()=>{
     const missions=[];
     for(let i=6;i>=0;i--){
       const d=new Date();d.setDate(d.getDate()-i);
-      missions.push(scoreDay(historyData,isoDate(d)));
+      missions.push(scoreDay(historyData,isoDate(d),goals.calorieGoal));
     }
     const totalXp=missions.reduce((sum,m)=>sum+m.xp,0);
     const average=Math.round(totalXp/missions.length);
@@ -394,7 +485,7 @@ export default function Page(){
       {claim:`${key}:water`,done:today.water>=2500,type:"water",tier:"normal",title:"Baú da Fonte Ancestral"},
       {claim:`${key}:protein`,done:today.protein>=130,type:"protein",tier:"normal",title:"Baú da Força do Primata"},
       {claim:`${key}:training`,done:today.exercise>0,type:"training",tier:"rare",title:"Baú do Combate"},
-      {claim:`${key}:balance`,done:today.net>0&&today.net<=GOAL,type:"balance",tier:"normal",title:"Baú do Equilíbrio"},
+      {claim:`${key}:balance`,done:today.net>0&&today.net<=goals.calorieGoal,type:"balance",tier:"normal",title:"Baú do Equilíbrio"},
       {claim:`boss:${pet.missions[0]?.key}`,done:pet.boss.hp===0,type:"boss",tier:"legendary",title:"Baú Lendário do Chefe Semanal"}
     ];
     const earned=rewards.filter(reward=>reward.done&&!claims[reward.claim]);
@@ -411,7 +502,7 @@ export default function Page(){
         type:reward.type,tier:reward.tier,title:reward.title,earnedAt:new Date().toISOString()
       }))
     ]);
-  },[historyData,pet.missions,pet.boss.hp,claims]);
+  },[historyData,pet.missions,pet.boss.hp,claims,goals.calorieGoal]);
 
 
   const dateLabel=new Date(`${selectedDate}T12:00:00`).toLocaleDateString("pt-BR",{weekday:"long",day:"2-digit",month:"long",year:"numeric"});
@@ -421,10 +512,7 @@ export default function Page(){
       <div className="brand"><div className="logoMark">N</div><div><h1>NutriClock</h1><p>Acompanhamento nutricional e hábitos</p></div></div>
       <div className="mode"><span className="modeDot"/>Demonstração</div>
     </header>
-
-    <div className={`status ${status==="Sincronizado"?"ok":""}`}>{status}</div>
-
-    {active==="home"&&<>
+{active==="home"&&<>
       <div className="sectionIntro"><div><span>Resumo diário</span><h2>Visão geral</h2></div><p>Acompanhe o que importa hoje.</p></div><section className="stats">
         <article><Flame/><div><span>Consumidas</span><b>{Math.round(totals.consumed)} kcal</b></div></article>
         <article><Dumbbell/><div><span>Exercício</span><b>{Math.abs(Math.round(totals.exercise))} kcal</b></div></article>
@@ -441,9 +529,9 @@ export default function Page(){
 
         <article className="panel overview">
           <h2>{dateLabel}</h2>
-          <div className="metric"><span><Beef size={18}/>Proteína</span><b>{Math.round(totals.protein_g)} / {PROTEIN_GOAL} g</b></div><Progress value={totals.protein_g} max={PROTEIN_GOAL}/>
-          <div className="metric"><span><Droplets size={18}/>Água</span><b>{Math.round(totals.water_ml)} / {WATER_GOAL} ml</b></div><Progress value={totals.water_ml} max={WATER_GOAL}/>
-          <div className="metric"><span><Coffee size={18}/>Cafeína</span><b>{Math.round(totals.caffeine_mg)} / {CAFFEINE_GOAL} mg</b></div><Progress value={totals.caffeine_mg} max={CAFFEINE_GOAL}/>
+          <div className="metric"><span><Beef size={18}/>Proteína</span><b>{Math.round(totals.protein_g)} / {goals.proteinGoal} g</b></div><Progress value={totals.protein_g} max={goals.proteinGoal}/>
+          <div className="metric"><span><Droplets size={18}/>Água</span><b>{Math.round(totals.water_ml)} / {goals.waterGoal} ml</b></div><Progress value={totals.water_ml} max={goals.waterGoal}/>
+          <div className="metric"><span><Coffee size={18}/>Cafeína</span><b>{Math.round(totals.caffeine_mg)} / {goals.caffeineGoal} mg</b></div><Progress value={totals.caffeine_mg} max={goals.caffeineGoal}/>
           <div className="metric"><span><Scale size={18}/>Peso</span><b>{totals.weight_kg?`${totals.weight_kg} kg`:"sem registro"}</b></div>
         </article>
 
@@ -471,13 +559,30 @@ export default function Page(){
     </>}
 
     {active==="recipes"&&<section className="page">
-      <div className="hero"><Utensils size={42}/><div><span>Receitas</span><h2>Sugestões para {Math.max(0,Math.round(totals.remaining))} kcal restantes</h2></div></div>
-      <div className="recipeGrid">{recipes.map((r,i)=><article className={`panel recipe ${i===0?"featured":""}`} key={r.name}>{i===0&&<em>Melhor opção</em>}<h3>{r.name}</h3><div className="recipeMeta"><b>{r.calories} kcal</b><span>{r.protein} g proteína</span><span>{r.time}</span></div><details><summary>Ver receita</summary><h4>Ingredientes</h4><ul>{r.ingredients.map(x=><li key={x}>{x}</li>)}</ul><h4>Preparo</h4><ol>{r.steps.map(x=><li key={x}>{x}</li>)}</ol></details></article>)}</div>
+      <div className="hero recipeHero">
+        <Utensils size={42}/>
+        <div>
+          <span>Receitas personalizadas</span>
+          <h2>{Math.max(0,Math.round(totals.remaining))} kcal disponíveis hoje</h2>
+          <p>Selecionadas para o objetivo “{profile.objective==="lose"?"emagrecer":profile.objective==="gain"?"ganhar peso":profile.objective==="muscle"?"ganhar massa muscular":"manter o peso"}”.</p>
+        </div>
+        <button className="recipeRefresh" onClick={()=>setRecipeRotation(value=>value+1)}>Trocar sugestões</button>
+      </div>
+      <div className="recipeGrid expanded">
+        {recipes.map((r,i)=><article className={`panel recipe ${i===0?"featured":""}`} key={`${r.id}-${recipeRotation}`}>
+          <div className="recipeImage"><img src={r.image} alt={r.name}/>{i===0&&<em>Melhor encaixe</em>}</div>
+          <div className="recipeBody">
+            <h3>{r.name}</h3>
+            <div className="recipeMeta"><b>{r.calories} kcal</b><span>{r.protein} g proteína</span><span>{r.time}</span></div>
+            <details><summary>Ingredientes e preparo</summary><h4>Ingredientes</h4><ul>{r.ingredients.map(x=><li key={x}>{x}</li>)}</ul><h4>Preparo</h4><ol>{r.steps.map(x=><li key={x}>{x}</li>)}</ol></details>
+          </div>
+        </article>)}
+      </div>
     </section>}
 
     {active==="history"&&<section className="page"><div className="hero"><History size={42}/><div><span>Histórico</span><h2>Todos os registros</h2></div></div><article className="panel">{historyData.map(e=><div className="entry" key={e.id}><div className="entryText"><strong>{e.description}</strong><small>{new Date(e.occurred_at).toLocaleString("pt-BR")}</small></div><b>{entryValue(e)}</b></div>)}</article></section>}
 
-    {active==="stats"&&<section className="page"><div className="hero"><BarChart3 size={42}/><div><span>Estatísticas</span><h2>Sua evolução</h2></div></div><article className="panel chartPanel"><h2>Calorias — últimos 7 dias</h2><ResponsiveContainer width="100%" height={300}><BarChart data={last7}><CartesianGrid strokeDasharray="3 3" stroke="#ffffff12"/><XAxis dataKey="label" stroke="#9fb2c9"/><YAxis stroke="#9fb2c9"/><Tooltip/><ReferenceLine y={GOAL} stroke="#ffc857" strokeDasharray="6 6"/><Bar dataKey="calories" fill="#62a6ff" radius={[8,8,0,0]}/></BarChart></ResponsiveContainer></article><article className="panel chartPanel"><h2>Peso</h2>{weightData.length?<ResponsiveContainer width="100%" height={280}><LineChart data={weightData}><CartesianGrid strokeDasharray="3 3" stroke="#ffffff12"/><XAxis dataKey="label" stroke="#9fb2c9"/><YAxis stroke="#9fb2c9" domain={["dataMin - 1","dataMax + 1"]}/><Tooltip/><Line dataKey="weight" stroke="#58e0b0" strokeWidth={4}/></LineChart></ResponsiveContainer>:<div className="empty">Sem registros de peso.</div>}</article></section>}
+    {active==="stats"&&<section className="page"><div className="hero"><BarChart3 size={42}/><div><span>Estatísticas</span><h2>Sua evolução</h2></div></div><article className="panel chartPanel"><h2>Calorias — últimos 7 dias</h2><ResponsiveContainer width="100%" height={300}><BarChart data={last7}><CartesianGrid strokeDasharray="3 3" stroke="#ffffff12"/><XAxis dataKey="label" stroke="#9fb2c9"/><YAxis stroke="#9fb2c9"/><Tooltip/><ReferenceLine y={goals.calorieGoal} stroke="#ffc857" strokeDasharray="6 6"/><Bar dataKey="calories" fill="#62a6ff" radius={[8,8,0,0]}/></BarChart></ResponsiveContainer></article><article className="panel chartPanel"><h2>Peso</h2>{weightData.length?<ResponsiveContainer width="100%" height={280}><LineChart data={weightData}><CartesianGrid strokeDasharray="3 3" stroke="#ffffff12"/><XAxis dataKey="label" stroke="#9fb2c9"/><YAxis stroke="#9fb2c9" domain={["dataMin - 1","dataMax + 1"]}/><Tooltip/><Line dataKey="weight" stroke="#58e0b0" strokeWidth={4}/></LineChart></ResponsiveContainer>:<div className="empty">Sem registros de peso.</div>}</article></section>}
 
     {active==="pet"&&<section className="page rpgPage">
       <div className="rpgHero companionHome">
@@ -627,7 +732,40 @@ export default function Page(){
       </div>}
     </section>}
 
-    {active==="profile"&&<section className="page"><div className="hero"><User size={42}/><div><span>Perfil</span><h2>Metas atuais</h2></div></div><div className="profileGrid"><article className="panel"><h3>Calorias</h3><b>{GOAL} kcal</b></article><article className="panel"><h3>Proteína</h3><b>{PROTEIN_GOAL} g</b></article><article className="panel"><h3>Água</h3><b>{WATER_GOAL} ml</b></article><article className="panel"><h3>Cafeína</h3><b>{CAFFEINE_GOAL} mg</b></article></div></section>}
+    {active==="profile"&&<section className="page">
+      <div className="hero profileHero">
+        <User size={42}/>
+        <div><span>Perfil e objetivos</span><h2>Metas adaptadas ao seu corpo e objetivo</h2><p>Os cálculos usam Mifflin–St Jeor e um ajuste conforme objetivo, ritmo e atividade.</p></div>
+      </div>
+
+      <div className="profileLayout">
+        <form className="panel profileForm" onSubmit={saveProfile}>
+          <div className="panelHead"><div><h2>Seus dados</h2><p>Altere quando quiser. As metas são recalculadas automaticamente.</p></div></div>
+          <div className="profileFields">
+            <label>Nome<input value={profileDraft.name} onChange={e=>setProfileDraft({...profileDraft,name:e.target.value})}/></label>
+            <label>Sexo<select value={profileDraft.sex} onChange={e=>setProfileDraft({...profileDraft,sex:e.target.value})}><option value="male">Masculino</option><option value="female">Feminino</option></select></label>
+            <label>Idade<input type="number" min="16" value={profileDraft.age} onChange={e=>setProfileDraft({...profileDraft,age:e.target.value})}/></label>
+            <label>Altura (cm)<input type="number" min="130" value={profileDraft.heightCm} onChange={e=>setProfileDraft({...profileDraft,heightCm:e.target.value})}/></label>
+            <label>Peso atual (kg)<input type="number" min="35" step="0.1" value={profileDraft.weightKg} onChange={e=>setProfileDraft({...profileDraft,weightKg:e.target.value})}/></label>
+            <label>Nível de atividade<select value={profileDraft.activity} onChange={e=>setProfileDraft({...profileDraft,activity:e.target.value})}><option value="sedentary">Sedentário</option><option value="light">Levemente ativo</option><option value="moderate">Moderadamente ativo</option><option value="high">Muito ativo</option></select></label>
+            <label>Objetivo<select value={profileDraft.objective} onChange={e=>setProfileDraft({...profileDraft,objective:e.target.value})}><option value="lose">Emagrecer</option><option value="maintain">Manter peso</option><option value="gain">Ganhar peso</option><option value="muscle">Ganhar massa muscular</option></select></label>
+            <label>Ritmo<select value={profileDraft.pace} onChange={e=>setProfileDraft({...profileDraft,pace:e.target.value})}><option value="slow">Gradual</option><option value="moderate">Moderado</option><option value="fast">Acelerado</option></select></label>
+          </div>
+          <button className="primary">{profileSaved?"Metas atualizadas":"Salvar e recalcular metas"}</button>
+        </form>
+
+        <aside className="profileGoals">
+          <article className="panel goalSummary"><span>Meta recomendada</span><strong>{goals.calorieGoal} kcal</strong><p>{profile.objective==="lose"?"Déficit calculado para perda de gordura.":profile.objective==="muscle"?"Superávit leve com proteína elevada para hipertrofia.":profile.objective==="gain"?"Superávit calórico para ganho gradual de peso.":"Meta próxima ao gasto diário estimado."}</p></article>
+          <div className="profileGrid dynamic">
+            <article className="panel"><h3>Proteína</h3><b>{goals.proteinGoal} g</b><small>Baseada no peso e objetivo</small></article>
+            <article className="panel"><h3>Água</h3><b>{goals.waterGoal} ml</b><small>Aproximadamente 35 ml/kg</small></article>
+            <article className="panel"><h3>Metabolismo basal</h3><b>{goals.bmr} kcal</b><small>Estimativa em repouso</small></article>
+            <article className="panel"><h3>Gasto diário</h3><b>{goals.tdee} kcal</b><small>Inclui nível de atividade</small></article>
+          </div>
+          <div className="profileDisclaimer">Estimativas servem para acompanhamento pessoal e não substituem avaliação de nutricionista ou médico.</div>
+        </aside>
+      </div>
+    </section>}
 
     <nav className="bottomNav">
       <button className={active==="home"?"active":""} onClick={()=>setActive("home")}><HomeIcon/><span>Início</span></button>

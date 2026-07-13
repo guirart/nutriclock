@@ -1,16 +1,10 @@
-# NutriClock v8 — Professional Design
+# NutriClock v8.1.1 — deploy verificável
 
-Redesign completo da interface com foco em aparência de produto real:
+Esta versão:
+- remove completamente o estado visual de sincronização;
+- mantém receitas com imagens;
+- mantém rotação de receitas;
+- mantém perfil e metas personalizadas;
+- mostra `Demonstração · v8.1.1` no cabeçalho para confirmar que o deploy novo está ativo.
 
-- sistema visual consistente;
-- paleta mais sóbria;
-- hierarquia tipográfica;
-- cards e formulários padronizados;
-- navegação inferior refinada;
-- dashboard mais limpo;
-- RPG integrado ao produto sem aparência infantil;
-- companion scene mais cinematográfica;
-- inventário, baús e combate com apresentação mais madura;
-- responsividade revisada.
-
-Publique substituindo todo o conteúdo do repositório pela versão extraída deste ZIP.
+Após publicar, se o cabeçalho não exibir `v8.1.1`, a Vercel ainda está apontando para um deployment antigo.
