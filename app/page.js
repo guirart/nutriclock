@@ -164,6 +164,8 @@ export default function Page(){
   const [claims,setClaims]=useState({});
   const [lootReveal,setLootReveal]=useState(null);
   const [rpgTab,setRpgTab]=useState("journey");
+  const [companionReaction,setCompanionReaction]=useState(0);
+  const [companionMessage,setCompanionMessage]=useState("Vamos conquistar a selva juntos!");
 
 
   useEffect(()=>{
@@ -292,6 +294,19 @@ export default function Page(){
     return result;
   },[equippedItems]);
 
+  function interactWithCompanion(){
+    const messages=[
+      "Eu vi seu esforço hoje. Continue!",
+      "Cada copo de água fortalece nossa jornada.",
+      "Vamos derrubar esse chefe juntos!",
+      "Sua disciplina está me deixando mais forte.",
+      "Complete uma missão e eu preparo o próximo ataque!",
+      "Os baús da selva estão esperando por nós."
+    ];
+    setCompanionMessage(messages[Math.floor(Math.random()*messages.length)]);
+    setCompanionReaction(value=>value+1);
+  }
+
   const totals=summary?.totals||{consumed:0,exercise:0,net:0,remaining:GOAL,protein_g:0,water_ml:0,caffeine_mg:0,weight_kg:null};
   const entries=summary?.entries||[];
 
@@ -357,10 +372,17 @@ export default function Page(){
       {name:"Semana Equilibrada",icon:"⚖️",unlocked:average>=70},
       {name:"Lenda da Selva",icon:"👑",unlocked:level>=6}
     ];
-    const boss=average>=75
-      ?{name:"Cobra do Açúcar",emoji:"🐍",status:"Derrotado",message:"Você venceu o chefe semanal mantendo bons hábitos."}
-      :{name:"Crocodilo da Preguiça",emoji:"🐊",status:"Em combate",message:"Complete mais missões para derrotar o chefe da semana."};
-    return {missions,totalXp,average,level,stage,progress,locations,achievements,boss};
+    const bossMaxHp=700;
+    const rawDamage=missions.reduce((sum,mission)=>sum+mission.quests.filter(quest=>quest.done).reduce((value,quest)=>value+quest.xp,0),0);
+    const regeneration=missions.reduce((sum,mission)=>sum+Math.abs(mission.penalties.reduce((value,penalty)=>value+penalty.xp,0)),0);
+    const damage=Math.max(0,rawDamage-regeneration);
+    const bossHp=Math.max(0,bossMaxHp-damage);
+    const bossPercent=Math.round((bossHp/bossMaxHp)*100);
+    const boss=bossHp===0
+      ?{name:"Crocodilo da Preguiça",emoji:"🐊",status:"Derrotado",message:"O golpe final foi aplicado. O tesouro lendário foi liberado.",hp:0,maxHp:bossMaxHp,damage,regeneration,percent:0}
+      :{name:"Crocodilo da Preguiça",emoji:"🐊",status:"Em combate",message:"Cada objetivo concluído causa dano. Práticas ruins restauram parte da vida do chefe.",hp:bossHp,maxHp:bossMaxHp,damage,regeneration,percent:bossPercent};
+    const recentAttacks=missions.flatMap(mission=>mission.quests.filter(quest=>quest.done).map(quest=>({id:`${mission.key}-${quest.id}`,name:quest.name,damage:quest.xp,key:mission.key}))).slice(-5).reverse();
+    return {missions,totalXp,average,level,stage,progress,locations,achievements,boss,recentAttacks};
   },[historyData]);
 
   useEffect(()=>{
@@ -372,7 +394,8 @@ export default function Page(){
       {claim:`${key}:water`,done:today.water>=2500,type:"water",tier:"normal",title:"Baú da Fonte Ancestral"},
       {claim:`${key}:protein`,done:today.protein>=130,type:"protein",tier:"normal",title:"Baú da Força do Primata"},
       {claim:`${key}:training`,done:today.exercise>0,type:"training",tier:"rare",title:"Baú do Combate"},
-      {claim:`${key}:balance`,done:today.net>0&&today.net<=GOAL,type:"balance",tier:"normal",title:"Baú do Equilíbrio"}
+      {claim:`${key}:balance`,done:today.net>0&&today.net<=GOAL,type:"balance",tier:"normal",title:"Baú do Equilíbrio"},
+      {claim:`boss:${pet.missions[0]?.key}`,done:pet.boss.hp===0,type:"boss",tier:"legendary",title:"Baú Lendário do Chefe Semanal"}
     ];
     const earned=rewards.filter(reward=>reward.done&&!claims[reward.claim]);
     if(!earned.length) return;
@@ -388,7 +411,7 @@ export default function Page(){
         type:reward.type,tier:reward.tier,title:reward.title,earnedAt:new Date().toISOString()
       }))
     ]);
-  },[historyData,pet.missions,claims]);
+  },[historyData,pet.missions,pet.boss.hp,claims]);
 
 
   const dateLabel=new Date(`${selectedDate}T12:00:00`).toLocaleDateString("pt-BR",{weekday:"long",day:"2-digit",month:"long",year:"numeric"});
@@ -457,14 +480,18 @@ export default function Page(){
     {active==="stats"&&<section className="page"><div className="hero"><BarChart3 size={42}/><div><span>Estatísticas</span><h2>Sua evolução</h2></div></div><article className="panel chartPanel"><h2>Calorias — últimos 7 dias</h2><ResponsiveContainer width="100%" height={300}><BarChart data={last7}><CartesianGrid strokeDasharray="3 3" stroke="#ffffff12"/><XAxis dataKey="label" stroke="#9fb2c9"/><YAxis stroke="#9fb2c9"/><Tooltip/><ReferenceLine y={GOAL} stroke="#ffc857" strokeDasharray="6 6"/><Bar dataKey="calories" fill="#62a6ff" radius={[8,8,0,0]}/></BarChart></ResponsiveContainer></article><article className="panel chartPanel"><h2>Peso</h2>{weightData.length?<ResponsiveContainer width="100%" height={280}><LineChart data={weightData}><CartesianGrid strokeDasharray="3 3" stroke="#ffffff12"/><XAxis dataKey="label" stroke="#9fb2c9"/><YAxis stroke="#9fb2c9" domain={["dataMin - 1","dataMax + 1"]}/><Tooltip/><Line dataKey="weight" stroke="#58e0b0" strokeWidth={4}/></LineChart></ResponsiveContainer>:<div className="empty">Sem registros de peso.</div>}</article></section>}
 
     {active==="pet"&&<section className="page rpgPage">
-      <div className="rpgHero">
-        <div className="characterStage">
-          <div className="characterAura"/>
-          <div className="character">{pet.stage.emoji}</div>
+      <div className="rpgHero companionHome">
+        <div className="companionScene" onClick={interactWithCompanion}>
+          <div className="skyGlow"/><div className="moon">🌙</div>
+          <div className="mountain mountainOne"/><div className="mountain mountainTwo"/>
+          <div className="tree treeLeft">🌴</div><div className="tree treeRight">🌳</div>
+          <div className="fireflies">{[1,2,3,4,5,6].map(dot=><i key={dot}/>)}</div>
+          <div className="campfire">🔥</div>
+          <div className="speechBubble">{companionMessage}</div>
+          <div className={`character interactiveCharacter reaction-${companionReaction%3}`}>{pet.stage.emoji}</div>
           <span className="levelBadge">Nível {pet.level}</span>
-          <div className="equippedVisuals">
-            {equippedItems.slice(0,3).map(item=><span key={item.id} title={item.name}>{item.icon}</span>)}
-          </div>
+          <div className="equippedVisuals">{equippedItems.slice(0,3).map(item=><span key={item.id} title={item.name}>{item.icon}</span>)}</div>
+          <div className="sceneHint">Toque no seu companheiro</div>
         </div>
         <div className="rpgHeroText">
           <span className="rpgEyebrow">Jornada do Guardião da Selva</span>
@@ -509,7 +536,13 @@ export default function Page(){
             {(pet.missions.at(-1)?.penalties||[]).map(p=><div className="missionRow penalty" key={p.name}><div className="missionStatus">−</div><div><strong>{p.name}</strong><small>{p.xp} XP</small></div></div>)}
           </article>
           <article className="panel bossPanel">
-            <div className="bossCreature">{pet.boss.emoji}</div><span className="rpgEyebrow">Chefe semanal</span><h2>{pet.boss.name}</h2><p>{pet.boss.message}</p><div className={`bossStatus ${pet.boss.status==="Derrotado"?"won":""}`}>{pet.boss.status}</div>
+            <div className={`bossArena ${pet.boss.hp===0?"defeated":""}`}><div className="bossCreature">{pet.boss.emoji}</div><div className="impactFlash">💥</div></div>
+            <span className="rpgEyebrow">Chefe semanal</span><h2>{pet.boss.name}</h2>
+            <div className="bossHpHeader"><strong>HP {pet.boss.hp} / {pet.boss.maxHp}</strong><span>{pet.boss.percent}%</span></div>
+            <div className="bossHpBar"><span style={{width:`${pet.boss.percent}%`}}/></div>
+            <div className="bossCombatStats"><span>⚔️ Dano: {pet.boss.damage}</span><span>💚 Regeneração: {pet.boss.regeneration}</span></div>
+            <p>{pet.boss.message}</p><div className={`bossStatus ${pet.boss.status==="Derrotado"?"won":""}`}>{pet.boss.status}</div>
+            <div className="attackLog"><h4>Últimos golpes</h4>{!pet.recentAttacks.length&&<small>Nenhum golpe aplicado ainda.</small>}{pet.recentAttacks.map(attack=><div key={attack.id}><span>{attack.name}</span><b>-{attack.damage} HP</b></div>)}</div>
           </article>
         </section>
 
