@@ -71,6 +71,26 @@ function seededShuffle(items,seed){
 }
 
 const PET_STATE_KEY = "nutriclock_pixel_pet_v2";
+const PET_NAME_KEY = "nutriclock_pet_name_v1";
+const BODY_STATS = {
+  measuredAt:"2026-07-16T08:56:00-03:00",
+  weightKg:94.8,
+  fatMassKg:28.3,
+  bodyFatPercent:29.9,
+  bodyFatIndex:6,
+  obesityLevel:5,
+  idealWeightKg:63,
+  weightControlKg:31.8,
+  visceralFat:11,
+  leanMassKg:66.5,
+  bodyWaterPercent:50.5,
+  boneMassKg:3.4,
+  proteinRatePercent:16,
+  bmrKcal:1805,
+  metabolicAge:31,
+  bodyType:"Obeso",
+  score:68.5
+};
 const PET_ACTIVE_IMAGE = "/pet/mico-idle.png";
 const DAILY_LOGIN_KEY = "nutriclock_daily_login_v1";
 const PET_ACTIONS_KEY = "nutriclock_pet_actions_v1";
@@ -268,6 +288,9 @@ export default function Page(){
   const [dailyLogin,setDailyLogin]=useState({lastLogin:null,streak:0,totalLogins:0});
   const [petActions,setPetActions]=useState({date:dateKey(),interactions:0,feeds:0,trainings:0});
   const [bossCountdown,setBossCountdown]=useState("");
+  const [petName,setPetName]=useState("MicoClock");
+  const [editingPetName,setEditingPetName]=useState(false);
+  const [petNameDraft,setPetNameDraft]=useState("MicoClock");
 
 
 
@@ -283,6 +306,9 @@ export default function Page(){
     const savedPet=safeRead(PET_STATE_KEY,{energy:86,happiness:92,hunger:34,bananas:12});
     const savedLogin=safeRead(DAILY_LOGIN_KEY,{lastLogin:null,streak:0,totalLogins:0});
     const savedActions=safeRead(PET_ACTIONS_KEY,{date:dateKey(),interactions:0,feeds:0,trainings:0});
+    const savedPetName=typeof window!=="undefined"?(localStorage.getItem(PET_NAME_KEY)||"MicoClock"):"MicoClock";
+    setPetName(savedPetName);
+    setPetNameDraft(savedPetName);
     const today=dateKey();
     let nextLogin=savedLogin;
     let nextPet=savedPet;
@@ -313,6 +339,7 @@ export default function Page(){
   useEffect(()=>{if(typeof window!=="undefined") localStorage.setItem(PET_STATE_KEY,JSON.stringify(petNeeds));},[petNeeds]);
   useEffect(()=>{if(typeof window!=="undefined") localStorage.setItem(DAILY_LOGIN_KEY,JSON.stringify(dailyLogin));},[dailyLogin]);
   useEffect(()=>{if(typeof window!=="undefined") localStorage.setItem(PET_ACTIONS_KEY,JSON.stringify(petActions));},[petActions]);
+  useEffect(()=>{if(typeof window!=="undefined") localStorage.setItem(PET_NAME_KEY,petName);},[petName]);
   useEffect(()=>{
     if(active!=="pet") return;
     const idleTimer=setInterval(()=>{
@@ -494,6 +521,57 @@ export default function Page(){
   const rawTotals=summary?.totals||{consumed:0,exercise:0,net:0,remaining:goals.calorieGoal,protein_g:0,water_ml:0,caffeine_mg:0,weight_kg:null};
   const totals={...rawTotals,goal:goals.calorieGoal,remaining:goals.calorieGoal-Number(rawTotals.net||0)};
   const entries=summary?.entries||[];
+
+  function savePetName(event){
+    event?.preventDefault();
+    const cleaned=petNameDraft.trim().slice(0,18);
+    if(!cleaned) return;
+    setPetName(cleaned);
+    setEditingPetName(false);
+    setPetMessage(`Agora meu nome é ${cleaned}!`);
+    setPetAnimation("celebrate");
+    setTimeout(()=>setPetAnimation("idle"),1800);
+  }
+
+  const dayAssessment=useMemo(()=>{
+    const consumed=Number(totals?.consumed||0);
+    const net=Number(totals?.net||0);
+    const protein=Number(totals?.protein_g||0);
+    const water=Number(totals?.water_ml||0);
+    const exercise=Number(totals?.exercise||0);
+    const caffeine=Number(totals?.caffeine_mg||0);
+    let score=2;
+    const positives=[];
+    const improvements=[];
+
+    if(entries.length>0){score+=1;positives.push("Você registrou o dia, o que permite acompanhar padrões reais.");}
+    else improvements.push("Ainda não há registros suficientes para avaliar o dia com confiança.");
+
+    if(protein>=goals.proteinGoal){score+=2;positives.push("A meta de proteína foi atingida.");}
+    else if(protein>=goals.proteinGoal*.65){score+=1;positives.push("A ingestão de proteína está razoável, mas ainda incompleta.");}
+    else improvements.push(`Proteína baixa: faltam cerca de ${Math.max(0,Math.round(goals.proteinGoal-protein))} g para a meta.`);
+
+    if(water>=goals.waterGoal){score+=2;positives.push("A hidratação atingiu a meta diária.");}
+    else if(water>=goals.waterGoal*.6){score+=1;positives.push("A hidratação está caminhando, mas ainda não fechou a meta.");}
+    else improvements.push(`Hidratação insuficiente: faltam aproximadamente ${Math.max(0,Math.round(goals.waterGoal-water))} ml.`);
+
+    if(net>0&&net<=goals.calorieGoal){score+=2;positives.push("O saldo calórico está dentro da meta planejada.");}
+    else if(net>goals.calorieGoal){improvements.push(`Você ultrapassou a meta líquida em cerca de ${Math.round(net-goals.calorieGoal)} kcal.`);}
+    else improvements.push("O saldo calórico ainda está incompleto ou sem registros suficientes.");
+
+    if(exercise>0){score+=1;positives.push("Houve atividade física registrada.");}
+    else improvements.push("Não há exercício registrado hoje.");
+
+    if(caffeine>goals.caffeineGoal) improvements.push("Cafeína acima da meta definida; evite aumentar mais hoje.");
+    if(consumed>0&&protein/Math.max(consumed,1)<0.05) improvements.push("A densidade proteica do dia está baixa em relação às calorias consumidas.");
+
+    score=Math.max(1,Math.min(10,Math.round(score)));
+    let verdict=score>=9?"Excelente, mas não perfeito.":score>=7?"Bom dia, com pontos claros para fechar melhor.":score>=5?"Mediano: há progresso, mas as escolhas ainda estão inconsistentes.":score>=3?"Fraco: o dia precisa de correções objetivas.":"Muito fraco: faltam registros e hábitos básicos.";
+
+    return {score,verdict,positives,improvements};
+  },[entries,totals,goals]);
+
+
 
   const monthCalories=useMemo(()=>{
     const map={};
@@ -683,24 +761,62 @@ export default function Page(){
 
     {active==="history"&&<section className="page"><div className="hero"><History size={42}/><div><span>Histórico</span><h2>Todos os registros</h2></div></div><article className="panel">{historyData.map(e=><div className="entry" key={e.id}><div className="entryText"><strong>{e.description}</strong><small>{new Date(e.occurred_at).toLocaleString("pt-BR")}</small></div><b>{entryValue(e)}</b></div>)}</article></section>}
 
-    {active==="stats"&&<section className="page"><div className="hero"><BarChart3 size={42}/><div><span>Estatísticas</span><h2>Sua evolução</h2></div></div><article className="panel chartPanel"><h2>Calorias — últimos 7 dias</h2><ResponsiveContainer width="100%" height={300}><BarChart data={last7}><CartesianGrid strokeDasharray="3 3" stroke="#ffffff12"/><XAxis dataKey="label" stroke="#9fb2c9"/><YAxis stroke="#9fb2c9"/><Tooltip/><ReferenceLine y={goals.calorieGoal} stroke="#ffc857" strokeDasharray="6 6"/><Bar dataKey="calories" fill="#62a6ff" radius={[8,8,0,0]}/></BarChart></ResponsiveContainer></article><article className="panel chartPanel"><h2>Peso</h2>{weightData.length?<ResponsiveContainer width="100%" height={280}><LineChart data={weightData}><CartesianGrid strokeDasharray="3 3" stroke="#ffffff12"/><XAxis dataKey="label" stroke="#9fb2c9"/><YAxis stroke="#9fb2c9" domain={["dataMin - 1","dataMax + 1"]}/><Tooltip/><Line dataKey="weight" stroke="#58e0b0" strokeWidth={4}/></LineChart></ResponsiveContainer>:<div className="empty">Sem registros de peso.</div>}</article></section>}
+    {active==="stats"&&<section className="page">
+      <div className="hero"><BarChart3 size={42}/><div><span>Estatísticas</span><h2>Evolução e composição corporal</h2><p>Dados da balança inteligente e registros do NutriClock.</p></div></div>
+
+      <article className="panel dayRatingPanel">
+        <div className="ratingHeader"><div><span>Avaliação nutrológica do dia</span><h2>{dayAssessment.score}/10</h2></div><div className="tenStars">{Array.from({length:10},(_,i)=><span className={i<dayAssessment.score?"filled":""} key={i}>★</span>)}</div></div>
+        <h3>{dayAssessment.verdict}</h3>
+        <div className="ratingColumns">
+          <div><h4>Pontos positivos</h4>{dayAssessment.positives.length?dayAssessment.positives.map(item=><p key={item}>✓ {item}</p>):<p>Nenhum ponto positivo confirmado ainda.</p>}</div>
+          <div><h4>Correções prioritárias</h4>{dayAssessment.improvements.length?dayAssessment.improvements.slice(0,4).map(item=><p key={item}>• {item}</p>):<p>Continue mantendo o padrão atual.</p>}</div>
+        </div>
+        <small>A nota considera os registros disponíveis até agora. Ela não substitui avaliação médica ou nutricional.</small>
+      </article>
+
+      <section className="bodyCompositionGrid">
+        <article className="panel bodyHeroCard"><span>Leitura mais recente</span><strong>{BODY_STATS.weightKg} kg</strong><p>{new Date(BODY_STATS.measuredAt).toLocaleString("pt-BR")}</p><div className="bodyScore"><b>{BODY_STATS.score}</b><small>pontuação média</small></div></article>
+        <article className="panel bodyMetric warning"><span>Gordura corporal</span><strong>{BODY_STATS.bodyFatPercent}%</strong><small>{BODY_STATS.fatMassKg} kg de massa gorda</small></article>
+        <article className="panel bodyMetric warning"><span>Gordura visceral</span><strong>{BODY_STATS.visceralFat}</strong><small>Nível de alerta</small></article>
+        <article className="panel bodyMetric"><span>Massa magra</span><strong>{BODY_STATS.leanMassKg} kg</strong><small>Peso sem gordura</small></article>
+        <article className="panel bodyMetric"><span>Água corporal</span><strong>{BODY_STATS.bodyWaterPercent}%</strong><small>Faixa indicada como ideal</small></article>
+        <article className="panel bodyMetric"><span>Massa óssea</span><strong>{BODY_STATS.boneMassKg} kg</strong><small>Faixa indicada como ideal</small></article>
+        <article className="panel bodyMetric"><span>Taxa de proteína</span><strong>{BODY_STATS.proteinRatePercent}%</strong><small>Faixa indicada como ideal</small></article>
+        <article className="panel bodyMetric"><span>Metabolismo basal</span><strong>{BODY_STATS.bmrKcal} kcal</strong><small>Estimativa da balança</small></article>
+        <article className="panel bodyMetric warning"><span>Idade metabólica</span><strong>{BODY_STATS.metabolicAge} anos</strong><small>Acima da idade cronológica informada</small></article>
+        <article className="panel bodyMetric warning"><span>Peso ideal estimado</span><strong>{BODY_STATS.idealWeightKg} kg</strong><small>Controle sugerido: -{BODY_STATS.weightControlKg} kg</small></article>
+        <article className="panel bodyMetric danger"><span>Nível de obesidade</span><strong>{BODY_STATS.obesityLevel}</strong><small>Tipo corporal: {BODY_STATS.bodyType}</small></article>
+        <article className="panel bodyMetric warning"><span>Índice de gordura</span><strong>{BODY_STATS.bodyFatIndex}</strong><small>Classificação alta</small></article>
+      </section>
+
+      <article className="panel chartPanel"><h2>Calorias — últimos 7 dias</h2><ResponsiveContainer width="100%" height={300}><BarChart data={last7}><CartesianGrid strokeDasharray="3 3" stroke="#ffffff12"/><XAxis dataKey="label" stroke="#9fb2c9"/><YAxis stroke="#9fb2c9"/><Tooltip/><ReferenceLine y={goals.calorieGoal} stroke="#ffc857" strokeDasharray="6 6"/><Bar dataKey="calories" fill="#62a6ff" radius={[8,8,0,0]}/></BarChart></ResponsiveContainer></article>
+      <article className="panel chartPanel"><h2>Peso</h2>{weightData.length?<ResponsiveContainer width="100%" height={280}><LineChart data={weightData}><CartesianGrid strokeDasharray="3 3" stroke="#ffffff12"/><XAxis dataKey="label" stroke="#9fb2c9"/><YAxis stroke="#9fb2c9" domain={["dataMin - 1","dataMax + 1"]}/><Tooltip/><Line dataKey="weight" stroke="#58e0b0" strokeWidth={4}/></LineChart></ResponsiveContainer>:<div className="empty">Sem registros de peso no banco. A leitura atual da balança é {BODY_STATS.weightKg} kg.</div>}</article>
+    </section>}
 
     {active==="pet"&&<section className="page pixelPetPage">
       <header className="pixelPetHeader">
-        <div><span className="pixelEyebrow">Seu companheiro de jornada</span><h2>MicoClock</h2></div>
+        <div><span className="pixelEyebrow">Seu companheiro de jornada</span><h2>{petName}</h2></div>
         <div className="bananaWallet"><span>🍌</span><strong>{petNeeds.bananas}</strong><button onClick={()=>setRpgTab("chests")}>+</button></div>
       </header>
 
       <section className="pixelCompanionCard">
         <div className={`pixelStage monkey-${petAnimation}`} onClick={interactWithCompanion} key={`${petAnimation}-${petActionTick}`}>
           <div className="pixelStageGlow"/><div className="pixelDust">{[1,2,3,4,5,6,7].map(dot=><i key={dot}/>)}</div>
-          <img className="pixelCompanionArt" src={PET_ACTIVE_IMAGE} alt="MicoClock ativo"/>
+          <img className="pixelCompanionArt" src={PET_ACTIVE_IMAGE} alt={`${petName} ativo`}/>
           <div className="pixelSpeech">{petMessage}</div>
           <div className="pixelStageHint">Toque no MicoClock</div>
         </div>
 
         <div className="pixelCharacterInfo">
-          <div className="pixelNameRow"><div><h3>MicoClock</h3><span className="pixelOnline"><i/>Companheiro ativo</span></div><button aria-label="Editar nome"><Pencil size={16}/></button></div>
+          <div className="pixelNameRow">
+            {editingPetName?
+              <form className="petNameEditor" onSubmit={savePetName}>
+                <input autoFocus maxLength="18" value={petNameDraft} onChange={e=>setPetNameDraft(e.target.value)} aria-label="Novo nome do macaco"/>
+                <button type="submit">Salvar</button>
+                <button type="button" onClick={()=>{setEditingPetName(false);setPetNameDraft(petName)}}>Cancelar</button>
+              </form>
+              :<><div><h3>{petName}</h3><span className="pixelOnline"><i/>Companheiro ativo</span></div><button aria-label="Editar nome" onClick={()=>setEditingPetName(true)}><Pencil size={16}/></button></>}
+          </div>
           <div className="pixelLevelRow"><div className="pixelLevelBadge"><small>NÍVEL</small><strong>{pet.level}</strong></div><div className="pixelXp"><div><strong>{pet.totalXp}</strong><span>/ 600 XP</span></div><div className="pixelBar green"><span style={{width:`${Math.min(100,pet.progress)}%`}}/></div><small>{pet.stage.name} · {pet.stage.title}</small></div></div>
           <div className="pixelVitals">
             <div><span className="vitalIcon">⚡</span><label>Energia</label><div className="pixelBar yellow"><span style={{width:`${petNeeds.energy}%`}}/></div><strong>{petNeeds.energy}/100</strong></div>

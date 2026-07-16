@@ -398,3 +398,20 @@ button:active{transform:translateY(1px)}
 .compactBoss .pixelBossProgress p{font-size:11px;line-height:1.45;margin:9px 0;color:#9dabba}.compactBoss .bossReward{display:flex;gap:7px;flex-wrap:wrap}.compactBoss .bossReward span{font-size:9px}
 .explainedMission{align-items:flex-start}.missionContent{min-width:0;flex:1}.missionContent p{margin:4px 0;color:#91a0ad;font-size:10px;line-height:1.4}.missionContent small{display:block;color:#b8c5d0;font-size:9px;margin-bottom:5px}
 @media(max-width:620px){.dailyLoginCard{grid-template-columns:auto 1fr}.loginReward{grid-column:1/-1;display:flex;justify-content:center;gap:8px}.compactBoss .pixelBossBody{grid-template-columns:105px 1fr;gap:9px;padding:12px}.resizedBoss,.resizedBoss img{width:100px}.bossTimerLive strong{font-size:9px}.petActionFeedback{padding:10px}}
+
+/* v8.4 — nome editável, composição corporal e nota diária */
+.petNameEditor{display:flex;gap:7px;align-items:center;width:100%;flex-wrap:wrap}
+.petNameEditor input{flex:1;min-width:150px;padding:9px 10px;border-radius:9px;border:1px solid #334556;background:#0c141c;color:#f4f7fb;font-weight:800}
+.petNameEditor button{padding:8px 10px;border-radius:9px;border:1px solid #31404e;background:#172431;color:#eef4fa;font-size:11px;font-weight:800}
+.dayRatingPanel{margin-bottom:14px;background:linear-gradient(145deg,#18251f,#111821);border-color:rgba(125,211,167,.25)}
+.ratingHeader{display:flex;justify-content:space-between;gap:18px;align-items:center}
+.ratingHeader span{color:#7dd3a7;font-size:11px;text-transform:uppercase;letter-spacing:.09em;font-weight:800}
+.ratingHeader h2{margin:5px 0 0;font-size:38px}
+.tenStars{display:flex;gap:3px;flex-wrap:wrap;justify-content:flex-end}.tenStars span{color:#35404b;font-size:23px}.tenStars span.filled{color:#f0c568;text-shadow:0 0 10px rgba(240,197,104,.25)}
+.dayRatingPanel>h3{margin:14px 0 9px;font-size:18px}.dayRatingPanel>small{display:block;margin-top:14px;color:#7f8d9b;font-size:10px}
+.ratingColumns{display:grid;grid-template-columns:1fr 1fr;gap:14px}.ratingColumns>div{padding:13px;border-radius:12px;background:#0d151c;border:1px solid #26313c}.ratingColumns h4{margin:0 0 8px}.ratingColumns p{margin:7px 0;color:#b9c5d0;font-size:11px;line-height:1.45}
+.bodyCompositionGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px}
+.bodyHeroCard{grid-column:span 2;position:relative;background:linear-gradient(145deg,#142536,#12211d)}.bodyHeroCard>span,.bodyMetric>span{display:block;color:#93a1b2;font-size:10px;text-transform:uppercase;letter-spacing:.08em;font-weight:800}.bodyHeroCard>strong{display:block;margin-top:7px;font-size:39px}.bodyHeroCard p{margin:4px 0 0;color:#7e8d9d;font-size:11px}.bodyScore{position:absolute;right:18px;top:18px;display:grid;justify-items:center;padding:10px 13px;border-radius:13px;background:#0c151d;border:1px solid #2a3b43}.bodyScore b{font-size:21px;color:#f0c568}.bodyScore small{font-size:9px;color:#95a3b0}
+.bodyMetric{min-height:125px;display:flex;flex-direction:column;justify-content:center}.bodyMetric strong{display:block;margin:8px 0 5px;font-size:26px}.bodyMetric small{color:#8d9aa8;font-size:10px;line-height:1.4}.bodyMetric.warning{border-color:rgba(240,197,104,.28)}.bodyMetric.warning strong{color:#e8bd67}.bodyMetric.danger{border-color:rgba(239,127,122,.34)}.bodyMetric.danger strong{color:#ef8a84}
+@media(max-width:980px){.bodyCompositionGrid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:620px){.ratingHeader{align-items:flex-start;flex-direction:column}.tenStars{justify-content:flex-start}.ratingColumns{grid-template-columns:1fr}.bodyCompositionGrid{grid-template-columns:1fr}.bodyHeroCard{grid-column:auto}.bodyScore{position:static;margin-top:12px;justify-self:start;width:max-content}.petNameEditor{align-items:stretch}.petNameEditor input{width:100%}}

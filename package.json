@@ -1,6 +1,6 @@
 {
-  "name": "nutriclock-v8-pet-functional",
-  "version": "8.3.0",
+  "name": "nutriclock-v8-body-stats",
+  "version": "8.4.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
