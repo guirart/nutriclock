@@ -13,6 +13,17 @@ function getIntegrationUserId() {
   return (process.env.NUTRICLOCK_GPT_USER_ID || "rafael").trim();
 }
 
+
+export async function GET() {
+  return NextResponse.json({
+    success: true,
+    service: "NutriClock GPT API",
+    endpoint: "/api/gpt/entries",
+    post_available: true,
+    authentication: "none"
+  });
+}
+
 export async function POST(request) {
   try {
     const userId = getIntegrationUserId();
