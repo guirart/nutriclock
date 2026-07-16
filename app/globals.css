@@ -742,10 +742,9 @@ button:active{transform:translateY(1px)}
 
 /* v10.2 — correção do estado neutro do Monkey King */
 
-/* v10.3 — reintegração limpa do Monkey King
-   O spritesheet original possui personagens de perfil na linha 1.
-   Para evitar o personagem permanentemente “de lado”, o repouso usa
-   o quadro frontal mais neutro do mesmo arquivo (linha 4, coluna 4). */
+/* v10.4 — correção do repouso do Monkey King
+   O arquivo não possui uma pose totalmente frontal como os inimigos.
+   O repouso usa o quadro mais frontal disponível: linha 2, coluna 2. */
 .monkeyKingSprite{
   display:block;
   width:32px;
@@ -760,13 +759,13 @@ button:active{transform:translateY(1px)}
   filter:drop-shadow(0 6px 2px rgba(0,0,0,.55));
   will-change:background-position,transform;
 }
-/* Quadro neutro frontal do próprio spritesheet: x=96, y=96. */
+/* Quadro de repouso mais frontal disponível: x=32, y=32. */
 .monkeyKingSprite.state-idle,
 .monkeyKingSprite.state-look,
 .monkeyKingSprite.state-eat,
 .monkeyKingSprite.state-sad,
 .monkeyKingSprite.state-tired{
-  background-position:-96px -96px;
+  background-position:-32px -32px;
   animation:none;
 }
 /* Interação: linha 8. */
