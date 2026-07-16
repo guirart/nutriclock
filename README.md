@@ -51,3 +51,6 @@ Melhorias integradas nesta versão:
 - identidade pixelizada preservada sem aparência de dashboard administrativo.
 
 O estado de exploração é salvo em `localStorage` pela chave `nutriclock_expedition_v1`.
+
+### Correção v10.6
+O Monkey King agora é animado em quadros completos de 64x32 px. Isso impede o efeito de piscar/deslocar de um lado para o outro causado pelo recorte anterior em células de 32 px.

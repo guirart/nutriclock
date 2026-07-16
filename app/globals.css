@@ -749,18 +749,20 @@ button:active{transform:translateY(1px)}
    - interação: linha 8 (20 quadros) */
 .monkeyKingSprite{
   display:block;
-  width:32px;
+  width:64px;
   height:32px;
-  flex:0 0 32px;
+  flex:0 0 64px;
   background-image:url('/game/monkey/monkey-king.png');
   background-repeat:no-repeat;
   background-size:1088px 256px;
   image-rendering:pixelated;
-  transform:scale(6);
+  transform:scale(3);
   transform-origin:50% 100%;
   filter:drop-shadow(0 6px 2px rgba(0,0,0,.55));
   will-change:background-position;
 }
+/* Cada quadro real ocupa 64x32 px (duas células de 32 px).
+   Usar 32 px cortava o personagem ao meio e fazia-o piscar de um lado para o outro. */
 /* Linha 1 exatamente como está no arquivo. */
 .monkeyKingSprite.state-idle,
 .monkeyKingSprite.state-look,
@@ -768,7 +770,7 @@ button:active{transform:translateY(1px)}
 .monkeyKingSprite.state-sad,
 .monkeyKingSprite.state-tired{
   background-position:0 0;
-  animation:monkeyKingIdleOriginal .9s steps(8) infinite;
+  animation:monkeyKingIdleOriginal .9s steps(4) infinite;
 }
 /* Linha 8 exatamente como está no arquivo. */
 .monkeyKingSprite.state-interact,
@@ -778,25 +780,25 @@ button:active{transform:translateY(1px)}
 .monkeyKingSprite.state-celebrate,
 .monkeyKingSprite.state-sleep{
   background-position:0 -224px;
-  animation:monkeyKingInteractOriginal 1.15s steps(20) 1 both;
+  animation:monkeyKingInteractOriginal 1.15s steps(10) 1 both;
 }
 /* Linhas 4, 5, 6 e 7 exatamente como estão no arquivo. */
 .monkeyKingSprite.state-train4{
   background-position:0 -96px;
-  animation:monkeyKingTrain4Original 1s steps(14) 1 both;
+  animation:monkeyKingTrain4Original 1s steps(7) 1 both;
 }
 .monkeyKingSprite.state-train5{
   background-position:0 -128px;
-  animation:monkeyKingTrain5Original 1.05s steps(16) 1 both;
+  animation:monkeyKingTrain5Original 1.05s steps(8) 1 both;
 }
 .monkeyKingSprite.state-train6,
 .monkeyKingSprite.state-attack{
   background-position:0 -160px;
-  animation:monkeyKingTrain6Original 1.35s steps(34) 1 both;
+  animation:monkeyKingTrain6Original 1.35s steps(17) 1 both;
 }
 .monkeyKingSprite.state-train7{
   background-position:0 -192px;
-  animation:monkeyKingTrain7Original 1.2s steps(28) 1 both;
+  animation:monkeyKingTrain7Original 1.2s steps(14) 1 both;
 }
 @keyframes monkeyKingIdleOriginal{to{background-position:-256px 0}}
 @keyframes monkeyKingInteractOriginal{to{background-position:-640px -224px}}
@@ -804,7 +806,7 @@ button:active{transform:translateY(1px)}
 @keyframes monkeyKingTrain5Original{to{background-position:-512px -128px}}
 @keyframes monkeyKingTrain6Original{to{background-position:-1088px -160px}}
 @keyframes monkeyKingTrain7Original{to{background-position:-896px -192px}}
-@media(max-width:800px){.monkeyKingSprite{transform:scale(5.2)}}
-@media(max-width:520px){.monkeyKingSprite{transform:scale(4.4)}}
+@media(max-width:800px){.monkeyKingSprite{transform:scale(2.6)}}
+@media(max-width:520px){.monkeyKingSprite{transform:scale(2.2)}}
 @media(prefers-reduced-motion:reduce){.monkeyKingSprite{animation:none!important}}
 

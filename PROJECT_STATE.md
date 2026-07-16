@@ -71,3 +71,8 @@ v9.1 — Conselho de Gamificação Integrado
 - Treinar: seleciona aleatoriamente uma animação entre as linhas 4, 5, 6 e 7.
 - Interagir: usa exclusivamente a animação da linha 8.
 - Ataques automáticos ao chefe usam a sequência da linha 6.
+
+## v10.6 — estabilização do Monkey King
+- Corrigido o recorte do spritesheet: cada quadro visual ocupa 64x32 px, não 32x32 px.
+- Idle usa 4 quadros completos da linha 1, mantendo o personagem ancorado no mesmo ponto.
+- Interação e treinos também passaram a usar quadros completos de 64 px para evitar alternância entre metades do personagem.
