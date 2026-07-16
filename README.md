@@ -28,3 +28,19 @@ Decisões aplicadas por quatro perspectivas:
 - interface mantém foco em poucas ações principais.
 
 Observação: para uma foto de balança atualizar automaticamente o peso, o GPT/API deve criar um registro `weight` com `weight_kg`. O app então usa esse registro mais recente sem alteração manual.
+
+## NutriClock v9.1 — Conselho de Gamificação
+
+Melhorias integradas nesta versão:
+
+- nova hierarquia visual da tela do companheiro;
+- foco diário destacado com a próxima missão incompleta;
+- cenário do personagem ampliado e interface mais limpa;
+- painel de ações reorganizado para reduzir confusão;
+- evento diário de exploração persistente;
+- recompensas de exploração com bananas, energia, felicidade ou baú;
+- feed dos últimos golpes contra o chefe semanal;
+- melhor adaptação mobile da área de gamificação;
+- identidade pixelizada preservada sem aparência de dashboard administrativo.
+
+O estado de exploração é salvo em `localStorage` pela chave `nutriclock_expedition_v1`.

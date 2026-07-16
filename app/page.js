@@ -94,6 +94,7 @@ const BODY_STATS = {
 const PET_ACTIVE_IMAGE = "/pet/mico-idle.png";
 const DAILY_LOGIN_KEY = "nutriclock_daily_login_v1";
 const PET_ACTIONS_KEY = "nutriclock_pet_actions_v1";
+const EXPEDITION_KEY = "nutriclock_expedition_v1";
 
 const CHEST_KEY = "nutriclock_rpg_chests_v1";
 const INVENTORY_KEY = "nutriclock_rpg_inventory_v1";
@@ -315,6 +316,7 @@ export default function Page(){
   const [petName,setPetName]=useState("MicoClock");
   const [editingPetName,setEditingPetName]=useState(false);
   const [petNameDraft,setPetNameDraft]=useState("MicoClock");
+  const [expedition,setExpedition]=useState({date:null,claimed:false,event:null});
 
 
 
@@ -331,6 +333,7 @@ export default function Page(){
     const savedLogin=safeRead(DAILY_LOGIN_KEY,{lastLogin:null,streak:0,totalLogins:0});
     const savedActions=safeRead(PET_ACTIONS_KEY,{date:dateKey(),interactions:0,feeds:0,trainings:0});
     const savedPetName=typeof window!=="undefined"?(localStorage.getItem(PET_NAME_KEY)||"MicoClock"):"MicoClock";
+    const savedExpedition=safeRead(EXPEDITION_KEY,{date:null,claimed:false,event:null});
     setPetName(savedPetName);
     setPetNameDraft(savedPetName);
     const today=dateKey();
@@ -355,6 +358,15 @@ export default function Page(){
     setDailyLogin(nextLogin);
     setPetNeeds(nextPet);
     setPetActions(savedActions.date===today?savedActions:{date:today,interactions:0,feeds:0,trainings:0});
+    const expeditionEvents=[
+      {id:"golden-banana",icon:"🍌",title:"Bananeira Dourada",text:"Seu companheiro encontrou uma bananeira rara durante a exploração.",reward:"3 bananas",bananas:3,xp:0},
+      {id:"hidden-chest",icon:"🧰",title:"Baú entre as ruínas",text:"Um brilho apareceu atrás de uma pedra coberta por musgo.",reward:"1 baú comum",chest:true,xp:0},
+      {id:"training-ground",icon:"⚔️",title:"Clareira de treinamento",text:"A expedição revelou um local perfeito para treinar disciplina.",reward:"Energia +15",energy:15,xp:0},
+      {id:"forest-friend",icon:"🦜",title:"Visitante da floresta",text:"Um papagaio trouxe notícias e deixou um pequeno presente.",reward:"Felicidade +18",happiness:18,xp:0}
+    ];
+    const daySeed=Number(today.replaceAll("-",""));
+    const event=expeditionEvents[daySeed%expeditionEvents.length];
+    setExpedition(savedExpedition.date===today?savedExpedition:{date:today,claimed:false,event});
     load();
     const retry=setTimeout(load,1800);
     const timer=setInterval(load,15000);
@@ -370,6 +382,7 @@ export default function Page(){
   useEffect(()=>{if(typeof window!=="undefined") localStorage.setItem(DAILY_LOGIN_KEY,JSON.stringify(dailyLogin));},[dailyLogin]);
   useEffect(()=>{if(typeof window!=="undefined") localStorage.setItem(PET_ACTIONS_KEY,JSON.stringify(petActions));},[petActions]);
   useEffect(()=>{if(typeof window!=="undefined") localStorage.setItem(PET_NAME_KEY,petName);},[petName]);
+  useEffect(()=>{if(typeof window!=="undefined") localStorage.setItem(EXPEDITION_KEY,JSON.stringify(expedition));},[expedition]);
   useEffect(()=>{
     if(active!=="pet") return;
     const idleTimer=setInterval(()=>{
@@ -544,6 +557,18 @@ export default function Page(){
     runPetAction("eat","Banana recebida! Minha fome diminuiu.",current=>({
       ...current,bananas:current.bananas-1,hunger:Math.max(0,current.hunger-20),happiness:Math.min(100,current.happiness+3)
     }));
+  }
+
+
+  function claimExpedition(){
+    if(expedition.claimed||!expedition.event) return;
+    const event=expedition.event;
+    if(event.bananas) setPetNeeds(current=>({...current,bananas:current.bananas+event.bananas}));
+    if(event.energy) setPetNeeds(current=>({...current,energy:Math.min(100,current.energy+event.energy)}));
+    if(event.happiness) setPetNeeds(current=>({...current,happiness:Math.min(100,current.happiness+event.happiness)}));
+    if(event.chest) awardChest("expedition","normal","Baú da Expedição");
+    setExpedition(current=>({...current,claimed:true}));
+    runPetAction("celebrate",`Expedição concluída: ${event.reward}!`);
   }
 
   function trainCompanion(){
@@ -751,7 +776,7 @@ const pet=useMemo(()=>{
   return <main className="shell">
     <header className="topbar">
       <div className="brand"><div className="logoMark">N</div><div><h1>NutriClock</h1><p>Acompanhamento nutricional e hábitos</p></div></div>
-      <div className="mode"><span className="modeDot"/>Demonstração · v8.2</div>
+      <div className="mode"><span className="modeDot"/>Conselho integrado · v9.1</div>
     </header>
 {active==="home"&&<>
       <div className="sectionIntro"><div><span>Resumo diário</span><h2>Visão geral</h2></div><p>Acompanhe o que importa hoje.</p></div><section className="stats">
@@ -861,6 +886,11 @@ const pet=useMemo(()=>{
         <div className="bananaWallet"><span>🍌</span><strong>{petNeeds.bananas}</strong><button onClick={()=>setRpgTab("chests")}>+</button></div>
       </header>
 
+      <section className="gameFocusStrip">
+        <div><small>PRÓXIMA AÇÃO</small><strong>{(pet.missions.at(-1)?.quests||[]).find(q=>!q.done)?.name||"Todas as missões concluídas"}</strong><span>{(pet.missions.at(-1)?.quests||[]).filter(q=>q.done).length}/5 missões hoje</span></div>
+        <button onClick={()=>document.querySelector(".missionsWindow")?.scrollIntoView({behavior:"smooth",block:"center"})}>Ver objetivo</button>
+      </section>
+
       <section className="pixelCompanionCard">
         <div className={`pixelStage monkey-${petAnimation}`} onClick={interactWithCompanion} key={`${petAnimation}-${petActionTick}`}>
           <div className="pixelStageGlow"/><div className="pixelDust">{[1,2,3,4,5,6,7].map(dot=><i key={dot}/>)}</div>
@@ -899,6 +929,12 @@ const pet=useMemo(()=>{
         </div>
       </section>
 
+      <article className={`expeditionCard ${expedition.claimed?"claimed":""}`}>
+        <div className="expeditionScene"><span>{expedition.event?.icon||"🗺️"}</span><i/></div>
+        <div><small>EVENTO DE EXPLORAÇÃO</small><h3>{expedition.event?.title||"Exploração diária"}</h3><p>{expedition.event?.text||"Volte amanhã para uma nova descoberta."}</p><strong>Recompensa: {expedition.event?.reward||"surpresa"}</strong></div>
+        <button disabled={expedition.claimed} onClick={claimExpedition}>{expedition.claimed?"Coletado":"Coletar"}</button>
+      </article>
+
       <article className="dailyLoginCard">
         <div className="loginCalendarIcon">📅</div>
         <div><small>RECOMPENSA DE LOGIN</small><h3>{dailyLogin.streak} dia(s) consecutivo(s)</h3><p>Entre uma vez por dia para receber 2 bananas. A cada 7º dia, receba 7 bananas.</p></div>
@@ -931,6 +967,10 @@ const pet=useMemo(()=>{
                 <span>🎒 Equipamento: ×{pet.boss.equipmentMultiplier.toFixed(2)}</span>
                 <span>😊 Humor/energia: ×{pet.boss.moodMultiplier.toFixed(2)}</span>
                 <span>💚 Cura do chefe: {pet.boss.regeneration}</span>
+              </div>
+              <div className="combatFeed">
+                <small>ÚLTIMOS GOLPES</small>
+                {pet.recentAttacks.length?pet.recentAttacks.slice(0,3).map(attack=><span key={attack.id}><b>⚡ -{attack.damage} HP</b>{attack.name}</span>):<span><b>Sem golpes hoje</b>Complete uma missão para atacar.</span>}
               </div>
             </div>
           </div>
