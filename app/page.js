@@ -93,6 +93,7 @@ const BODY_STATS = {
 };
 const MONKEY_SPRITESHEET = "/game/monkey/monkey-king.png";
 const GEM_KEY = "nutriclock_gems_v1";
+const PET_NEEDS_TICK_KEY = "nutriclock_pet_needs_tick_v1";
 const DAILY_LOGIN_KEY = "nutriclock_daily_login_v1";
 const PET_ACTIONS_KEY = "nutriclock_pet_actions_v1";
 const EXPEDITION_KEY = "nutriclock_expedition_v1";
@@ -122,28 +123,50 @@ const RARITIES = [
   {id:"mythic",name:"Mítico",color:"#ff596f",weight:.3,multiplier:4.5}
 ];
 
+const WEEKLY_BOSSES = [
+  {id:"skeleton1",name:"Esqueleto Esquelético",subtitle:"Ossos, pose e zero cálcio",maxHp:700,reward:{gems:18,bananas:14,chest:"legendary"}},
+  {id:"skeleton2",name:"Cavaleiro Sem Carne",subtitle:"A armadura pesa mais que ele",maxHp:760,reward:{gems:20,bananas:15,chest:"legendary"}},
+  {id:"vampire",name:"Vampiro de Segunda",subtitle:"Já acordou cansado da semana",maxHp:820,reward:{gems:24,bananas:16,chest:"mythic"}},
+  {id:"skeleton1",name:"Osvaldo Ossudo",subtitle:"Rei do treino sem musculatura",maxHp:740,reward:{gems:19,bananas:15,chest:"legendary"}},
+  {id:"skeleton2",name:"Sir Costela Seca",subtitle:"Defende o sedentarismo real",maxHp:790,reward:{gems:22,bananas:16,chest:"legendary"}},
+  {id:"vampire",name:"Conde Cafeína Zero",subtitle:"Só aparece depois da meia-noite",maxHp:850,reward:{gems:26,bananas:18,chest:"mythic"}}
+];
+
+const ASSET_ITEMS = {
+  sword:["Sword00.png","Sword04.png","Sword08.png","Sword12.png","Sword16.png"],
+  spear:["Spears00.png","Spears04.png","Spears08.png","Spears12.png","Spears16.png"],
+  armor:["Armors00.png","Armors04.png","Armors08.png","Armors12.png","Armors16.png"],
+  helmet:["Hats and Helmets00.png","Hats and Helmets05.png","Hats and Helmets10.png","Hats and Helmets15.png","Hats and Helmets20.png"],
+  shoes:["Shoes00.png","Shoes05.png","Shoes10.png","Shoes15.png","Shoes20.png"],
+  shield:["Shields00.png","Shields08.png","Shields16.png","Shields24.png","Shields32.png"],
+  ring:["Acessories - Ring and Necklace01.png","Acessories - Ring and Necklace05.png","Acessories - Ring and Necklace09.png","Acessories - Ring and Necklace13.png","Acessories - Ring and Necklace17.png"],
+  food:["Foods00.png","Foods03.png","Foods07.png","Foods11.png","Foods15.png"],
+  potion:["Misc and Items00.png","Misc and Items05.png","Misc and Items10.png","Misc and Items15.png","Misc and Items20.png"]
+};
+const assetPath=(folder,file)=>`/game/items/${folder}/${file}`;
+
 const ITEM_BASES = [
-  {name:"Bastão de Bambu",icon:"🦯",slot:"weapon",stats:{strength:3,discipline:1}},
-  {name:"Lança da Selva",icon:"🗡️",slot:"weapon",stats:{strength:4,determination:2}},
-  {name:"Elmo Tribal",icon:"🪖",slot:"head",stats:{resistance:3,discipline:2}},
-  {name:"Coroa Ancestral",icon:"👑",slot:"head",stats:{wisdom:5,discipline:3}},
-  {name:"Armadura de Folhas",icon:"🥋",slot:"body",stats:{vitality:4,balance:2}},
-  {name:"Peitoral do Guardião",icon:"🦺",slot:"body",stats:{resistance:5,vitality:3}},
-  {name:"Botas do Explorador",icon:"🥾",slot:"feet",stats:{energy:4,determination:2}},
-  {name:"Sandálias do Vento",icon:"👟",slot:"feet",stats:{energy:5,balance:2}},
-  {name:"Anel da Vitalidade",icon:"💍",slot:"ring",stats:{vitality:5}},
-  {name:"Anel da Disciplina",icon:"💍",slot:"ring",stats:{discipline:5}},
-  {name:"Amuleto da Fonte",icon:"📿",slot:"amulet",stats:{balance:4,wisdom:2}},
-  {name:"Totem do Gorila",icon:"🗿",slot:"amulet",stats:{strength:3,determination:4}}
+  {name:"Espada da Disciplina",icon:assetPath("Swords",ASSET_ITEMS.sword[0]),slot:"weapon",stats:{strength:3,discipline:2}},
+  {name:"Lança da Constância",icon:assetPath("Spears",ASSET_ITEMS.spear[1]),slot:"weapon",stats:{strength:4,determination:2}},
+  {name:"Elmo do Foco",icon:assetPath("Helmet and Hats",ASSET_ITEMS.helmet[1]),slot:"head",stats:{resistance:3,discipline:2}},
+  {name:"Capacete da Meta",icon:assetPath("Helmet and Hats",ASSET_ITEMS.helmet[3]),slot:"head",stats:{wisdom:5,discipline:3}},
+  {name:"Armadura do Equilíbrio",icon:assetPath("Armors",ASSET_ITEMS.armor[1]),slot:"body",stats:{vitality:4,balance:2}},
+  {name:"Peitoral da Rotina",icon:assetPath("Armors",ASSET_ITEMS.armor[3]),slot:"body",stats:{resistance:5,vitality:3}},
+  {name:"Botas do Passo Diário",icon:assetPath("Shoes",ASSET_ITEMS.shoes[1]),slot:"feet",stats:{energy:4,determination:2}},
+  {name:"Botas da Esteira",icon:assetPath("Shoes",ASSET_ITEMS.shoes[3]),slot:"feet",stats:{energy:5,balance:2}},
+  {name:"Anel da Vitalidade",icon:assetPath("Acessories - Rings and Necklace",ASSET_ITEMS.ring[0]),slot:"ring",stats:{vitality:5}},
+  {name:"Anel da Disciplina",icon:assetPath("Acessories - Rings and Necklace",ASSET_ITEMS.ring[2]),slot:"ring",stats:{discipline:5}},
+  {name:"Amuleto da Hidratação",icon:assetPath("Acessories - Rings and Necklace",ASSET_ITEMS.ring[3]),slot:"amulet",stats:{balance:4,wisdom:2}},
+  {name:"Escudo do Déficit",icon:assetPath("Shields",ASSET_ITEMS.shield[2]),slot:"amulet",stats:{resistance:3,determination:4}}
 ];
 
 const CARE_ITEM_BASES = [
-  {name:"Bola de Cipó",icon:"🟢",kind:"care",effect:"happiness",amount:18,description:"Brinquedo que aumenta a felicidade."},
-  {name:"Tambor Tribal",icon:"🥁",kind:"care",effect:"happiness",amount:28,description:"Brinquedo raro para animar o companheiro."},
-  {name:"Rede de Descanso",icon:"🛏️",kind:"care",effect:"energy",amount:24,description:"Recupera energia e melhora o descanso."},
-  {name:"Chá da Floresta",icon:"🍵",kind:"care",effect:"energy",amount:16,description:"Recupera energia para as próximas missões."},
-  {name:"Banana Dourada",icon:"🍌",kind:"care",effect:"banana",amount:3,description:"Adiciona bananas à reserva."},
-  {name:"Boneco de Treino",icon:"🧸",kind:"care",effect:"both",amount:14,description:"Aumenta felicidade e energia."}
+  {name:"Poção de Ânimo",icon:assetPath("Misc",ASSET_ITEMS.potion[0]),kind:"care",effect:"happiness",amount:18,description:"Aumenta a felicidade do companheiro."},
+  {name:"Elixir de Energia",icon:assetPath("Misc",ASSET_ITEMS.potion[1]),kind:"care",effect:"energy",amount:24,description:"Recupera energia para novas missões."},
+  {name:"Ração de Jornada",icon:assetPath("Foods",ASSET_ITEMS.food[1]),kind:"care",effect:"both",amount:14,description:"Recupera energia e felicidade."},
+  {name:"Fruta Fortificante",icon:assetPath("Foods",ASSET_ITEMS.food[3]),kind:"care",effect:"banana",amount:3,description:"Adiciona recursos de alimentação."},
+  {name:"Tônico do Guerreiro",icon:assetPath("Misc",ASSET_ITEMS.potion[3]),kind:"care",effect:"energy",amount:20,description:"Prepara o companheiro para o combate."},
+  {name:"Cristal Restaurador",icon:assetPath("Misc",ASSET_ITEMS.potion[4]),kind:"care",effect:"happiness",amount:26,description:"Restaura o humor após uma jornada difícil."}
 ];
 
 const SLOT_LABELS = {
@@ -298,6 +321,18 @@ function scoreDay(entries,key,calorieGoal){
   return {key,xp:Math.max(0,Math.min(100,Math.round(xp))),quests,penalties,consumed,exercise,protein,water,net};
 }
 
+function ItemIcon({item,className="assetItemIcon"}){
+  const source=typeof item==="string"?item:item?.icon;
+  if(source?.startsWith("/")) return <img className={className} src={source} alt={typeof item==="string"?"Item":item?.name||"Item"}/>;
+  return <span className={className}>{source||""}</span>;
+}
+
+function weekIndex(date=new Date()){
+  const utc=Date.UTC(date.getFullYear(),date.getMonth(),date.getDate());
+  const day=Math.floor(utc/86400000);
+  return Math.floor((day+3)/7);
+}
+
 export default function Page(){
   const [active,setActive]=useState("home");
   const [selectedDate,setSelectedDate]=useState(dateKey());
@@ -338,7 +373,7 @@ export default function Page(){
 
   useEffect(()=>{
     setChests(safeRead(CHEST_KEY,[]));
-    setInventory(safeRead(INVENTORY_KEY,[]));
+    setInventory(safeRead(INVENTORY_KEY,[]).map((item,index)=>item?.icon?.startsWith("/")?item:{...item,icon:ITEM_BASES[index%ITEM_BASES.length].icon}));
     setEquipment(safeRead(EQUIPMENT_KEY,{}));
     setClaims(safeRead(CLAIMS_KEY,{}));
     const savedProfile=safeRead(PROFILE_KEY,DEFAULT_PROFILE);
@@ -351,6 +386,7 @@ export default function Page(){
     const savedExpedition=safeRead(EXPEDITION_KEY,{date:null,claimed:false,event:null});
     const savedDailyBoss=safeRead(DAILY_BOSS_KEY,{date:null,rewardedCount:0});
     const savedGems=Number(typeof window!=="undefined"?localStorage.getItem(GEM_KEY):0)||0;
+    const savedNeedsTick=Number(typeof window!=="undefined"?localStorage.getItem(PET_NEEDS_TICK_KEY):Date.now())||Date.now();
     setGems(savedGems);
     setPetName(savedPetName);
     setPetNameDraft(savedPetName);
@@ -368,13 +404,14 @@ export default function Page(){
       const streak=consecutive?savedLogin.streak+1:1;
       const reward=streak%7===0?7:2;
       nextLogin={lastLogin:today,streak,totalLogins:(savedLogin.totalLogins||0)+1,lastReward:reward};
-      nextPet={...savedPet,bananas:(savedPet.bananas||0)+reward};
+      nextPet={...nextPet,bananas:(nextPet.bananas||0)+reward};
       setPetMessage(`Login diário: você recebeu ${reward} bananas!`);
       setPetAnimation("celebrate");
       setTimeout(()=>setPetAnimation("idle"),2600);
     }
     setDailyLogin(nextLogin);
     setPetNeeds(nextPet);
+    if(typeof window!=="undefined"&&!localStorage.getItem(PET_NEEDS_TICK_KEY)) localStorage.setItem(PET_NEEDS_TICK_KEY,String(savedNeedsTick));
     setPetActions(savedActions.date===today?savedActions:{date:today,interactions:0,feeds:0,trainings:0});
     const expeditionEvents=[
       {id:"golden-banana",icon:"🍌",title:"Bananeira Dourada",text:"Seu companheiro encontrou uma bananeira rara durante a exploração.",reward:"3 bananas",bananas:3,xp:0},
@@ -405,15 +442,38 @@ export default function Page(){
   useEffect(()=>{if(typeof window!=="undefined") localStorage.setItem(DAILY_BOSS_KEY,JSON.stringify(dailyBossState));},[dailyBossState]);
   useEffect(()=>{if(typeof window!=="undefined") localStorage.setItem(GEM_KEY,String(gems));},[gems]);
   useEffect(()=>{
-    if(active!=="pet") return;
-    const idleTimer=setInterval(()=>{
-      setPetAnimation("look");
-      setPetMessage("Estou acompanhando seu progresso.");
-      setPetActionTick(value=>value+1);
-      setTimeout(()=>setPetAnimation("idle"),1800);
-    },9000);
-    return()=>clearInterval(idleTimer);
-  },[active]);
+    if(typeof window==="undefined") return;
+    const applyNeedsDecay=()=>{
+      const now=Date.now();
+      const last=Number(localStorage.getItem(PET_NEEDS_TICK_KEY))||now;
+      const elapsedMinutes=Math.floor((now-last)/60000);
+      if(elapsedMinutes<1) return;
+      const energyLoss=Math.floor(elapsedMinutes/90);
+      const happinessLoss=Math.floor(elapsedMinutes/120);
+      const hungerGain=Math.floor(elapsedMinutes/75);
+      if(energyLoss||happinessLoss||hungerGain){
+        setPetNeeds(current=>({
+          ...current,
+          energy:Math.max(0,current.energy-energyLoss),
+          happiness:Math.max(0,current.happiness-happinessLoss),
+          hunger:Math.min(100,current.hunger+hungerGain)
+        }));
+      }
+      const consumedMinutes=Math.max(
+        energyLoss?energyLoss*90:0,
+        happinessLoss?happinessLoss*120:0,
+        hungerGain?hungerGain*75:0,
+        1
+      );
+      localStorage.setItem(PET_NEEDS_TICK_KEY,String(last+(consumedMinutes*60000)));
+    };
+    if(!localStorage.getItem(PET_NEEDS_TICK_KEY)) localStorage.setItem(PET_NEEDS_TICK_KEY,String(Date.now()));
+    applyNeedsDecay();
+    const timer=window.setInterval(applyNeedsDecay,60000);
+    const onVisibility=()=>{if(document.visibilityState==="visible") applyNeedsDecay();};
+    document.addEventListener("visibilitychange",onVisibility);
+    return()=>{window.clearInterval(timer);document.removeEventListener("visibilitychange",onVisibility);};
+  },[]);
 
   useEffect(()=>{
     const updateCountdown=()=>setBossCountdown(formatCountdown(weeklyResetAt()-new Date()));
@@ -743,7 +803,8 @@ const pet=useMemo(()=>{
       {name:"Semana Equilibrada",icon:"⚖️",unlocked:average>=70},
       {name:"Lenda da Selva",icon:"👑",unlocked:level>=6}
     ];
-    const bossMaxHp=700;
+    const weeklyDefinition=WEEKLY_BOSSES[weekIndex()%WEEKLY_BOSSES.length];
+    const bossMaxHp=weeklyDefinition.maxHp;
     const missionDamage=missions.reduce((sum,mission)=>sum+mission.quests.filter(quest=>quest.done).reduce((value,quest)=>value+quest.xp,0),0);
     const trainingDamage=(petActions.trainings||0)*8;
     const baseDamage=missionDamage+trainingDamage;
@@ -757,8 +818,8 @@ const pet=useMemo(()=>{
     const bossHp=Math.max(0,bossMaxHp-damage);
     const bossPercent=Math.round((bossHp/bossMaxHp)*100);
     const boss=bossHp===0
-      ?{name:"Crocodilo da Preguiça",emoji:"🐊",status:"Derrotado",message:"O golpe final foi aplicado. O tesouro lendário foi liberado.",hp:0,maxHp:bossMaxHp,damage,regeneration,percent:0,baseDamage,equipmentMultiplier,moodMultiplier,equipmentPower,moodAverage}
-      :{name:"Crocodilo da Preguiça",emoji:"🐊",status:"Em combate",message:"Missões, humor, energia, treinos e equipamentos determinam o dano final.",hp:bossHp,maxHp:bossMaxHp,damage,regeneration,percent:bossPercent,baseDamage,equipmentMultiplier,moodMultiplier,equipmentPower,moodAverage};
+      ?{...weeklyDefinition,status:"Derrotado",message:"O golpe final foi aplicado. O tesouro semanal foi liberado.",hp:0,maxHp:bossMaxHp,damage,regeneration,percent:0,baseDamage,equipmentMultiplier,moodMultiplier,equipmentPower,moodAverage}
+      :{...weeklyDefinition,status:"Em combate",message:"Missões, humor, energia, treinos e equipamentos determinam o dano final.",hp:bossHp,maxHp:bossMaxHp,damage,regeneration,percent:bossPercent,baseDamage,equipmentMultiplier,moodMultiplier,equipmentPower,moodAverage};
     const recentAttacks=missions.flatMap(mission=>mission.quests.filter(quest=>quest.done).map(quest=>({id:`${mission.key}-${quest.id}`,name:quest.name,damage:quest.xp,key:mission.key}))).slice(-5).reverse();
     return {missions,totalXp,average,level,stage,progress,locations,achievements,boss,recentAttacks};
   },[historyData,goals.calorieGoal,totalStats,petNeeds.energy,petNeeds.happiness,petActions.trainings]);
@@ -867,7 +928,7 @@ const pet=useMemo(()=>{
   return <main className="shell">
     <header className="topbar">
       <div className="brand"><div className="logoMark">N</div><div><h1>NutriClock</h1><p>Acompanhamento nutricional e hábitos</p></div></div>
-      <div className="mode"><span className="modeDot"/>Conselho integrado · v9.5</div>
+      <div className="mode"><span className="modeDot"/>UI Essentials · v9.7</div>
     </header>
 {active==="home"&&<>
       <div className="sectionIntro"><div><span>Resumo diário</span><h2>Visão geral</h2></div><p>Acompanhe o que importa hoje.</p></div><section className="stats">
@@ -974,7 +1035,7 @@ const pet=useMemo(()=>{
     {active==="pet"&&<section className="page pixelPetPage">
       <header className="pixelPetHeader">
         <div><span className="pixelEyebrow">Seu companheiro de jornada</span><h2>{petName}</h2></div>
-        <div className="currencyCluster"><div className="bananaWallet"><span>🍌</span><strong>{petNeeds.bananas}</strong><button onClick={()=>setRpgTab("chests")}>+</button></div><div className="gemWallet"><span className="gemIcon"/><strong>{gems}</strong></div></div>
+        <div className="currencyCluster"><div className="bananaWallet"><span>🍌</span><strong>{petNeeds.bananas}</strong><button onClick={()=>setRpgTab("chests")}>+</button></div><div className="gemWallet" title={`${gems} gems`}><span className="gemIcon" aria-hidden="true"/><strong>{gems}</strong><small>GEMS</small></div></div>
       </header>
 
       <section className="gameFocusStrip">
@@ -1059,12 +1120,12 @@ const pet=useMemo(()=>{
       {rpgTab==="journey"&&<>
         <article className="pixelBossCard compactBoss">
           <div className="pixelBossHead">
-            <div><span>☠</span><div><small>CHEFE DA SEMANA</small><h3>Gorilão Sombrio</h3></div></div>
+            <div><span className="uiSkullMarker"/><div><small>CHEFE DA SEMANA</small><h3>{pet.boss.name}</h3><p>{pet.boss.subtitle}</p></div></div>
             <div className="bossTimerLive"><small>REINÍCIO EM</small><strong>{bossCountdown}</strong></div>
           </div>
           <div className="pixelBossBody">
-            <div className={`pixelBossSprite resizedBoss ${pet.boss.hp===0?"defeated":""}`}>
-              <img src="/pet/boss-shadow.png" alt="Gorilão Sombrio"/>
+            <div className={`pixelBossSprite resizedBoss weeklyEnemy enemy-${pet.boss.id} ${pet.boss.hp===0?"defeated":""}`}>
+              <span className="enemyAnimatedSprite" role="img" aria-label={pet.boss.name}/>
             </div>
             <div className="pixelBossProgress">
               <div className="bossHpLabels"><strong>{pet.boss.hp} / {pet.boss.maxHp} HP</strong><span>{pet.boss.percent}%</span></div>
@@ -1110,11 +1171,11 @@ const pet=useMemo(()=>{
           <div className="pixelSideStack">
             <article className="pixelWindow equipmentPreview">
               <div className="pixelWindowTitle"><span>🎒</span><h3>Equipamentos</h3></div>
-              <div className="pixelEquipmentSlots">{["head","weapon","body"].map(slot=>{const item=inventory.find(entry=>entry.id===equipment[slot]);return <button onClick={()=>setRpgTab("inventory")} key={slot}>{item?<><span>{item.icon}</span><small>{item.rarityName}</small></>:<><LockKeyhole/><small>Vazio</small></>}</button>})}</div>
+              <div className="pixelEquipmentSlots">{["head","weapon","body"].map(slot=>{const item=inventory.find(entry=>entry.id===equipment[slot]);return <button onClick={()=>setRpgTab("inventory")} key={slot}>{item?<><ItemIcon item={item}/><small>{item.rarityName}</small></>:<><LockKeyhole/><small>Vazio</small></>}</button>})}</div>
             </article>
             <article className="pixelWindow inventoryPreview">
               <div className="pixelWindowTitle"><span>👜</span><h3>Inventário</h3><small>{inventory.length}/30 itens</small></div>
-              <div className="pixelInventoryQuick">{inventory.slice(0,3).map(item=><button onClick={()=>setRpgTab("inventory")} key={item.id}><span>{item.icon}</span><b>{item.rarityName}</b></button>)}<button onClick={()=>setRpgTab("inventory")}><Plus/><b>Abrir</b></button></div>
+              <div className="pixelInventoryQuick">{inventory.slice(0,3).map(item=><button onClick={()=>setRpgTab("inventory")} key={item.id}><ItemIcon item={item}/><b>{item.rarityName}</b></button>)}<button onClick={()=>setRpgTab("inventory")}><Plus/><b>Abrir</b></button></div>
             </article>
           </div>
         </section>
@@ -1126,18 +1187,18 @@ const pet=useMemo(()=>{
       </>}
 
       {rpgTab==="chests"&&<section className="pixelLootPage">
-        <article className="pixelWindow pixelLootIntro"><div><span className="pixelEyebrow">Recompensas guardadas</span><h2>{chests.length} baú(s) disponíveis</h2><p>Abra quando quiser. Cada baú pode conter equipamentos de diferentes raridades.</p></div><div className="bigPixelChest">🧰</div></article>
+        <article className="pixelWindow pixelLootIntro"><div><span className="pixelEyebrow">Recompensas guardadas</span><h2>{chests.length} baú(s) disponíveis</h2><p>Abra quando quiser. Cada baú pode conter equipamentos de diferentes raridades.</p></div><ItemIcon item={assetPath("Misc",ASSET_ITEMS.potion[2])} className="assetItemIcon chest"/></article>
         <div className="pixelRarityRow">{RARITIES.map(r=><span key={r.id} style={{color:r.color,borderColor:r.color}}>{r.name} {r.weight}%</span>)}</div>
         {!chests.length&&<div className="pixelWindow pixelEmpty"><PackageOpen/><h3>Nenhum baú guardado</h3><p>Complete metas para receber recompensas.</p></div>}
-        <div className="pixelChestGrid">{chests.map(chest=><article className={`pixelChestCard ${chest.tier}`} key={chest.id}><div>🧰</div><small>{chest.tier==="rare"?"RARO":"MISSÃO"}</small><h3>{chest.title}</h3><button onClick={()=>openChest(chest)}>Abrir baú</button></article>)}</div>
+        <div className="pixelChestGrid">{chests.map(chest=><article className={`pixelChestCard ${chest.tier}`} key={chest.id}><ItemIcon item={assetPath("Misc",ASSET_ITEMS.potion[2])} className="assetItemIcon chest"/><small>{chest.tier==="rare"?"RARO":"MISSÃO"}</small><h3>{chest.title}</h3><button onClick={()=>openChest(chest)}>Abrir baú</button></article>)}</div>
       </section>}
 
       {rpgTab==="inventory"&&<section className="pixelInventoryPage">
-        <article className="pixelWindow"><div className="pixelWindowTitle"><span>🛡</span><h3>Equipamentos ativos</h3></div><div className="pixelFullEquipment">{Object.entries(SLOT_LABELS).map(([slot,label])=>{const item=inventory.find(entry=>entry.id===equipment[slot]);return <article key={slot}><small>{label}</small>{item?<><div>{item.icon}</div><strong style={{color:item.rarityColor}}>{item.name}</strong><button onClick={()=>unequipSlot(slot)}>Remover</button></>:<><LockKeyhole/><strong>Vazio</strong></>}</article>})}</div></article>
-        <article className="pixelWindow"><div className="pixelWindowTitle"><span>🎒</span><h3>Mochila</h3><small>{inventory.length} itens</small></div>{!inventory.length&&<div className="pixelEmpty"><Gem/><p>Abra baús para encontrar equipamentos.</p></div>}<div className="pixelItemGrid">{inventory.map(item=><article className={item.kind==="care"?"careLootCard":""} style={{borderColor:item.rarityColor}} key={item.id}><div>{item.icon}</div><span style={{color:item.rarityColor}}>{item.rarityName}</span><h4>{item.name}</h4><small>{item.kind==="care"?`${item.description} +${item.amount}`:Object.entries(item.stats||{}).map(([stat,value])=>`${STAT_LABELS[stat]} +${value}`).join(" · ")}</small><button onClick={()=>item.kind==="care"?useCareItem(item):equipItem(item)}>{item.kind==="care"?"Usar":equipment[item.slot]===item.id?"Equipado":"Equipar"}</button></article>)}</div></article>
+        <article className="pixelWindow"><div className="pixelWindowTitle"><span>🛡</span><h3>Equipamentos ativos</h3></div><div className="pixelFullEquipment">{Object.entries(SLOT_LABELS).map(([slot,label])=>{const item=inventory.find(entry=>entry.id===equipment[slot]);return <article key={slot}><small>{label}</small>{item?<><ItemIcon item={item} className="assetItemIcon large"/><strong style={{color:item.rarityColor}}>{item.name}</strong><button onClick={()=>unequipSlot(slot)}>Remover</button></>:<><LockKeyhole/><strong>Vazio</strong></>}</article>})}</div></article>
+        <article className="pixelWindow"><div className="pixelWindowTitle"><span>🎒</span><h3>Mochila</h3><small>{inventory.length} itens</small></div>{!inventory.length&&<div className="pixelEmpty"><Gem/><p>Abra baús para encontrar equipamentos.</p></div>}<div className="pixelItemGrid">{inventory.map(item=><article className={item.kind==="care"?"careLootCard":""} style={{borderColor:item.rarityColor}} key={item.id}><ItemIcon item={item} className="assetItemIcon large"/><span style={{color:item.rarityColor}}>{item.rarityName}</span><h4>{item.name}</h4><small>{item.kind==="care"?`${item.description} +${item.amount}`:Object.entries(item.stats||{}).map(([stat,value])=>`${STAT_LABELS[stat]} +${value}`).join(" · ")}</small><button onClick={()=>item.kind==="care"?useCareItem(item):equipItem(item)}>{item.kind==="care"?"Usar":equipment[item.slot]===item.id?"Equipado":"Equipar"}</button></article>)}</div></article>
       </section>}
 
-      {lootReveal&&<div className="lootModal" onClick={()=>setLootReveal(null)}><div className="pixelLootReveal" onClick={event=>event.stopPropagation()} style={{borderColor:lootReveal.item.rarityColor}}><Sparkles/><span>ITEM ENCONTRADO</span><div>{lootReveal.item.icon}</div><h2>{lootReveal.item.name}</h2><strong style={{color:lootReveal.item.rarityColor}}>{lootReveal.item.rarityName}</strong><button onClick={()=>{lootReveal.item.kind==="care"?useCareItem(lootReveal.item):equipItem(lootReveal.item);setLootReveal(null);setRpgTab("inventory")}}>{lootReveal.item.kind==="care"?"Usar agora":"Equipar agora"}</button><button onClick={()=>setLootReveal(null)}>Guardar</button></div></div>}
+      {lootReveal&&<div className="lootModal" onClick={()=>setLootReveal(null)}><div className="pixelLootReveal" onClick={event=>event.stopPropagation()} style={{borderColor:lootReveal.item.rarityColor}}><Sparkles/><span>ITEM ENCONTRADO</span><ItemIcon item={lootReveal.item} className="assetItemIcon reveal"/><h2>{lootReveal.item.name}</h2><strong style={{color:lootReveal.item.rarityColor}}>{lootReveal.item.rarityName}</strong><button onClick={()=>{lootReveal.item.kind==="care"?useCareItem(lootReveal.item):equipItem(lootReveal.item);setLootReveal(null);setRpgTab("inventory")}}>{lootReveal.item.kind==="care"?"Usar agora":"Equipar agora"}</button><button onClick={()=>setLootReveal(null)}>Guardar</button></div></div>}
     </section>}
 
     {active==="profile"&&<section className="page">

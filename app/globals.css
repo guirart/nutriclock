@@ -517,3 +517,36 @@ button:active{transform:translateY(1px)}
 .nextEnemyNotice{position:absolute;z-index:4;right:14px;bottom:12px;max-width:260px;padding:7px 10px;border:2px solid #3a5665;background:#0c151bd9;color:#b9dbe7;font-size:8px;line-height:1.4;text-align:right}
 @media(max-width:800px){.animatedCompanionButton{width:260px!important;height:260px!important}.monkeyKingSprite{transform:scale(5.2)!important}}
 @media(max-width:520px){.animatedCompanionButton{width:220px!important;height:220px!important;bottom:28px!important}.monkeyKingSprite{transform:scale(4.4)!important}.nextEnemyNotice{left:12px;right:12px;max-width:none;text-align:center}}
+
+/* v9.6 — estado neutro, necessidades temporais e gems visíveis */
+.monkeyKingSprite.state-idle,
+.monkeyKingSprite.state-look{
+  background-position:0 0!important;
+  animation:none!important;
+}
+.monkeyKingSprite.state-wave{background-position:0 -32px;animation:monkeyKingCelebrateV95 .75s steps(6) 1 both}
+.monkeyKingSprite.state-eat{background-position:0 -64px;animation:monkeyKingCelebrateV95 .8s steps(6) 1 both}
+.monkeyKingSprite.state-sad,.monkeyKingSprite.state-tired{background-position:0 -224px;animation:monkeyKingSleepV95 1.2s steps(4) 1 both}
+.gemWallet{min-width:92px;justify-content:center;border-color:#207b97;background:linear-gradient(180deg,#0b2430,#07151d)}
+.gemWallet strong{font-size:15px;color:#7fe9ff;text-shadow:0 0 8px #27c9ff88}
+.gemWallet small{font-size:7px;color:#8cb8c8;letter-spacing:.08em}
+.gemIcon{width:24px;height:24px;background-image:url('/game/gems/gems.png');background-repeat:no-repeat;background-size:288px 216px;background-position:-48px -96px}
+.gemIcon.tiny{width:16px;height:16px;background-size:192px 144px;background-position:-32px -64px}
+
+/* v9.7 — Complete UI Essentials integrated across the RPG template */
+.pixelPetPage{--ui-frame:url('/game/ui/frame-primary.png');--ui-frame-alt:url('/game/ui/frame-secondary.png');--ui-frame-accent:url('/game/ui/frame-accent.png');--ui-button:url('/game/ui/button-normal.png');--ui-button-hover:url('/game/ui/button-hover.png');--ui-slot:url('/game/ui/slot.png');--ui-bar:url('/game/ui/bar-frame.png');}
+.pixelPetPage .pixelWindow,.pixelPetPage .pixelBossCard,.pixelPetPage .dailyLoginCard,.pixelPetPage .pixelCompanionCard,.pixelPetPage .pixelTabs,.pixelPetPage .expeditionCard,.pixelPetPage .dailyJourneyDock{border:12px solid transparent!important;border-image:var(--ui-frame) 20 fill stretch!important;border-radius:0!important;background:#111820!important;box-shadow:0 10px 24px #0009!important}
+.pixelPetPage .pixelBossCard,.pixelPetPage .dailyJourneyDock{border-image:var(--ui-frame-accent) 20 fill stretch!important}
+.pixelPetPage button:not(.animatedCompanionButton):not(.worldObject){border:10px solid transparent!important;border-image:var(--ui-button) 12 fill stretch!important;border-radius:0!important;background:#263a48!important;color:#f5f0dc!important;image-rendering:pixelated;transition:transform .1s ease,filter .1s ease}
+.pixelPetPage button:not(.animatedCompanionButton):not(.worldObject):hover{border-image-source:var(--ui-button-hover)!important;transform:translateY(-2px);filter:brightness(1.12)}
+.pixelPetPage .pixelVitals>div,.pixelPetPage .missionMiniBar,.pixelPetPage .pixelBossHp,.pixelPetPage .dailyBossHp{border:6px solid transparent!important;border-image:var(--ui-bar) 3 fill stretch!important;background:#080b10!important;overflow:hidden}
+.pixelPetPage .pixelVitals i,.pixelPetPage .missionMiniBar span,.pixelPetPage .pixelBossHp span,.pixelPetPage .dailyBossHp span{image-rendering:pixelated}
+.pixelPetPage .pixelEquipmentSlots button,.pixelPetPage .pixelInventoryQuick button,.pixelPetPage .pixelFullEquipment article,.pixelPetPage .pixelItemGrid article{border:10px solid transparent!important;border-image:var(--ui-slot) 10 fill stretch!important;border-radius:0!important;background:#101820!important}
+.pixelPetPage .pixelWindowTitle{min-height:44px;padding:8px 14px!important;background-image:url('/game/ui/banner.png');background-size:100% 100%;image-rendering:pixelated;color:#fff4ce}
+.assetItemIcon{display:block;width:34px!important;height:34px!important;object-fit:contain;image-rendering:pixelated;filter:drop-shadow(2px 3px 0 #0008)}
+.assetItemIcon.large{width:54px!important;height:54px!important;margin:0 auto}.assetItemIcon.reveal{width:92px!important;height:92px!important;margin:10px auto}.assetItemIcon.chest{width:76px!important;height:76px!important;margin:auto}
+.pixelItemGrid article>div,.pixelFullEquipment article>div{font-size:0!important}
+.weeklyEnemy{display:grid!important;place-items:center;min-height:170px!important}.weeklyEnemy .enemyAnimatedSprite{transform:scale(5)!important}.weeklyEnemy.defeated .enemyAnimatedSprite{transform:scale(5) rotate(90deg)!important}
+.pixelBossHead p{margin:3px 0 0;color:#a9b4c1;font-size:9px}.uiSkullMarker{width:30px;height:30px;background:url('/game/items/Misc/Misc and Items10.png') center/contain no-repeat;image-rendering:pixelated}
+.pixelTabs{padding:10px!important}.pixelTabs button.active{filter:brightness(1.25);transform:translateY(-2px)}
+@media(max-width:620px){.assetItemIcon.large{width:46px!important;height:46px!important}.weeklyEnemy .enemyAnimatedSprite{transform:scale(4)!important}}
