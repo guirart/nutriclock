@@ -45,9 +45,7 @@ v9.1 — Conselho de Gamificação Integrado
 - Ambiente acompanha a jornada/chefe diário.
 - Créditos e licença documentados em `ASSET_CREDITS.md`.
 
-## v9.7 — UI Essentials and weekly boss rotation
-- RPG panels, buttons, bars and slots now use the supplied Complete UI Essential Pack.
-- All generated RPG loot now uses images exclusively from the supplied 2D Assets Pack.
-- Legacy emoji inventory icons are migrated to asset images when loaded.
-- Weekly boss rotates automatically according to the calendar week.
-- Weekly bosses use the existing animated enemy sprites and humorous names.
+## v9.8
+- Corrigido contraste do UI Essentials para a paleta escura do NutriClock.
+- Removido preenchimento branco dos frames e botões.
+- Monkey King voltou a ter animação idle contínua, mantendo ações especiais.
