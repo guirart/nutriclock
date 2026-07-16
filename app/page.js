@@ -95,6 +95,17 @@ const PET_ACTIVE_IMAGE = "/pet/mico-idle.png";
 const DAILY_LOGIN_KEY = "nutriclock_daily_login_v1";
 const PET_ACTIONS_KEY = "nutriclock_pet_actions_v1";
 const EXPEDITION_KEY = "nutriclock_expedition_v1";
+const DAILY_BOSS_KEY = "nutriclock_daily_boss_v1";
+
+const DAILY_BOSSES = [
+  {id:"mushroom-king",name:"Cogumelo Rei",environment:"Reino dos Cogumelos",art:"/pet/daily-bosses/mushroom-king.svg",scene:"/pet/environments/mushroom-kingdom.svg",maxHp:180,reward:{bananas:4,chest:"rare"},story:"O soberano dos esporos bloqueou o caminho para a floresta luminosa."},
+  {id:"slime-king",name:"Rei Slime",environment:"Planície Esmeralda",art:"/pet/daily-bosses/slime-king.svg",scene:"/pet/environments/emerald-plains.svg",maxHp:200,reward:{bananas:5,chest:"rare"},story:"Uma massa gelatinosa tomou os campos e absorve toda a energia da região."},
+  {id:"crystal-golem",name:"Golem de Cristal",environment:"Caverna Prismática",art:"/pet/daily-bosses/crystal-golem.svg",scene:"/pet/environments/crystal-cave.svg",maxHp:230,reward:{bananas:5,chest:"epic"},story:"O guardião mineral despertou e fechou a passagem subterrânea."},
+  {id:"sand-scorpion",name:"Escorpião do Sol",environment:"Deserto Dourado",art:"/pet/daily-bosses/sand-scorpion.svg",scene:"/pet/environments/golden-desert.svg",maxHp:210,reward:{bananas:4,chest:"rare"},story:"Seu ferrão incandescente protege um antigo oásis de recompensas."},
+  {id:"storm-owl",name:"Coruja da Tempestade",environment:"Picos Trovejantes",art:"/pet/daily-bosses/storm-owl.svg",scene:"/pet/environments/storm-peaks.svg",maxHp:240,reward:{bananas:6,chest:"epic"},story:"A ave ancestral convocou uma tempestade que impede qualquer expedição."},
+  {id:"lava-boar",name:"Javali de Lava",environment:"Vale Vulcânico",art:"/pet/daily-bosses/lava-boar.svg",scene:"/pet/environments/volcanic-valley.svg",maxHp:260,reward:{bananas:6,chest:"epic"},story:"A criatura abriu fissuras de magma por toda a trilha do vale."},
+  {id:"moon-ghost",name:"Fantasma Lunar",environment:"Ruínas da Lua",art:"/pet/daily-bosses/moon-ghost.svg",scene:"/pet/environments/moon-ruins.svg",maxHp:280,reward:{bananas:7,chest:"legendary"},story:"Uma presença antiga tomou as ruínas e desafia os aventureiros mais disciplinados."}
+];
 
 const CHEST_KEY = "nutriclock_rpg_chests_v1";
 const INVENTORY_KEY = "nutriclock_rpg_inventory_v1";
@@ -317,6 +328,7 @@ export default function Page(){
   const [editingPetName,setEditingPetName]=useState(false);
   const [petNameDraft,setPetNameDraft]=useState("MicoClock");
   const [expedition,setExpedition]=useState({date:null,claimed:false,event:null});
+  const [dailyBossState,setDailyBossState]=useState({date:null,claimed:false});
 
 
 
@@ -334,6 +346,7 @@ export default function Page(){
     const savedActions=safeRead(PET_ACTIONS_KEY,{date:dateKey(),interactions:0,feeds:0,trainings:0});
     const savedPetName=typeof window!=="undefined"?(localStorage.getItem(PET_NAME_KEY)||"MicoClock"):"MicoClock";
     const savedExpedition=safeRead(EXPEDITION_KEY,{date:null,claimed:false,event:null});
+    const savedDailyBoss=safeRead(DAILY_BOSS_KEY,{date:null,claimed:false});
     setPetName(savedPetName);
     setPetNameDraft(savedPetName);
     const today=dateKey();
@@ -367,6 +380,7 @@ export default function Page(){
     const daySeed=Number(today.replaceAll("-",""));
     const event=expeditionEvents[daySeed%expeditionEvents.length];
     setExpedition(savedExpedition.date===today?savedExpedition:{date:today,claimed:false,event});
+    setDailyBossState(savedDailyBoss.date===today?savedDailyBoss:{date:today,claimed:false});
     load();
     const retry=setTimeout(load,1800);
     const timer=setInterval(load,15000);
@@ -383,6 +397,7 @@ export default function Page(){
   useEffect(()=>{if(typeof window!=="undefined") localStorage.setItem(PET_ACTIONS_KEY,JSON.stringify(petActions));},[petActions]);
   useEffect(()=>{if(typeof window!=="undefined") localStorage.setItem(PET_NAME_KEY,petName);},[petName]);
   useEffect(()=>{if(typeof window!=="undefined") localStorage.setItem(EXPEDITION_KEY,JSON.stringify(expedition));},[expedition]);
+  useEffect(()=>{if(typeof window!=="undefined") localStorage.setItem(DAILY_BOSS_KEY,JSON.stringify(dailyBossState));},[dailyBossState]);
   useEffect(()=>{
     if(active!=="pet") return;
     const idleTimer=setInterval(()=>{
@@ -742,6 +757,29 @@ const pet=useMemo(()=>{
     return {missions,totalXp,average,level,stage,progress,locations,achievements,boss,recentAttacks};
   },[historyData,goals.calorieGoal,totalStats,petNeeds.energy,petNeeds.happiness,petActions.trainings]);
 
+  const dailyBoss=useMemo(()=>{
+    const today=dateKey();
+    const seed=Number(today.replaceAll("-",""));
+    const definition=DAILY_BOSSES[seed%DAILY_BOSSES.length];
+    const todayMission=pet?.missions?.at(-1);
+    const missionDamage=(todayMission?.quests||[]).filter(quest=>quest.done).reduce((sum,quest)=>sum+quest.xp,0);
+    const actionDamage=(petActions.interactions||0)*2+(petActions.feeds||0)*3+(petActions.trainings||0)*12;
+    const equipmentBonus=Math.round(Object.values(totalStats).reduce((sum,value)=>sum+Number(value||0),0)*.6);
+    const damage=Math.min(definition.maxHp,missionDamage+actionDamage+equipmentBonus);
+    const hp=Math.max(0,definition.maxHp-damage);
+    return {...definition,damage,hp,percent:Math.round((hp/definition.maxHp)*100),defeated:hp===0};
+  },[pet,petActions,totalStats]);
+
+  function claimDailyBossReward(){
+    if(!dailyBoss.defeated||dailyBossState.claimed) return;
+    setPetNeeds(current=>({...current,bananas:current.bananas+dailyBoss.reward.bananas,happiness:Math.min(100,current.happiness+10)}));
+    awardChest("daily-boss",dailyBoss.reward.chest,`Tesouro de ${dailyBoss.name}`);
+    setDailyBossState({date:dateKey(),claimed:true,bossId:dailyBoss.id});
+    runPetAction("celebrate",`${dailyBoss.name} derrotado! Recompensa adicionada.`);
+  }
+
+
+
   useEffect(()=>{
     if(!historyData.length) return;
     const today=pet.missions.at(-1);
@@ -776,7 +814,7 @@ const pet=useMemo(()=>{
   return <main className="shell">
     <header className="topbar">
       <div className="brand"><div className="logoMark">N</div><div><h1>NutriClock</h1><p>Acompanhamento nutricional e hábitos</p></div></div>
-      <div className="mode"><span className="modeDot"/>Conselho integrado · v9.1</div>
+      <div className="mode"><span className="modeDot"/>Conselho integrado · v9.2</div>
     </header>
 {active==="home"&&<>
       <div className="sectionIntro"><div><span>Resumo diário</span><h2>Visão geral</h2></div><p>Acompanhe o que importa hoje.</p></div><section className="stats">
@@ -898,6 +936,21 @@ const pet=useMemo(()=>{
           <div className="pixelSpeech">{petMessage}</div>
           <div className="pixelStageHint">Toque no MicoClock</div>
         </div>
+
+        <article className="dailyJourneyDock" style={{backgroundImage:`linear-gradient(90deg,rgba(5,9,13,.25),rgba(5,9,13,.84)),url(${dailyBoss.scene})`}}>
+          <div className="dailyJourneyCopy">
+            <small>JORNADA DIÁRIA · {dailyBoss.environment}</small>
+            <h3>{dailyBoss.name}</h3>
+            <p>{dailyBoss.story}</p>
+            <div className="dailyBossHpLabels"><span>{dailyBoss.hp} / {dailyBoss.maxHp} HP</span><b>{dailyBoss.damage} de dano</b></div>
+            <div className="dailyBossHp"><span style={{width:`${dailyBoss.percent}%`}}/></div>
+            <div className="dailyJourneyReward"><span>🍌 {dailyBoss.reward.bananas}</span><span>🧰 Baú {dailyBoss.reward.chest}</span></div>
+          </div>
+          <div className={`dailyBossArt ${dailyBoss.defeated?"defeated":""}`}><img src={dailyBoss.art} alt={dailyBoss.name}/></div>
+          <button className={dailyBoss.defeated?"rewardReady":""} disabled={!dailyBoss.defeated||dailyBossState.claimed} onClick={claimDailyBossReward}>
+            {dailyBossState.claimed?"Recompensa coletada":dailyBoss.defeated?"Coletar vitória":"Conclua hábitos para atacar"}
+          </button>
+        </article>
 
         <div className="pixelCharacterInfo">
           <div className="pixelNameRow">
