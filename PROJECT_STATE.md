@@ -36,3 +36,11 @@ v9.1 — Conselho de Gamificação Integrado
 - Recompensa diária persistente: bananas, felicidade e baú conforme a dificuldade.
 - Chefe semanal preservado como objetivo de longo prazo.
 - Build de produção validado com sucesso em Next.js 15.5.9.
+
+
+## v9.3 — Mundo animado
+- Macaco estático substituído por sprite público animado com fallback local.
+- Cenário principal transformado em pequeno mundo interativo.
+- Árvore, fogueira e baú agora são objetos clicáveis.
+- Ambiente acompanha a jornada/chefe diário.
+- Créditos e licença documentados em `ASSET_CREDITS.md`.

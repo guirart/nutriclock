@@ -91,7 +91,8 @@ const BODY_STATS = {
   bodyType:"Obeso",
   score:68.5
 };
-const PET_ACTIVE_IMAGE = "/pet/mico-idle.png";
+const PET_ACTIVE_IMAGE = "https://img.itch.zone/aW1nLzEzODA1MzI3LmdpZg%3D%3D/original/uiGBGj.gif";
+const PET_FALLBACK_IMAGE = "/pet/mico-idle.png";
 const DAILY_LOGIN_KEY = "nutriclock_daily_login_v1";
 const PET_ACTIONS_KEY = "nutriclock_pet_actions_v1";
 const EXPEDITION_KEY = "nutriclock_expedition_v1";
@@ -814,7 +815,7 @@ const pet=useMemo(()=>{
   return <main className="shell">
     <header className="topbar">
       <div className="brand"><div className="logoMark">N</div><div><h1>NutriClock</h1><p>Acompanhamento nutricional e hábitos</p></div></div>
-      <div className="mode"><span className="modeDot"/>Conselho integrado · v9.2</div>
+      <div className="mode"><span className="modeDot"/>Conselho integrado · v9.3</div>
     </header>
 {active==="home"&&<>
       <div className="sectionIntro"><div><span>Resumo diário</span><h2>Visão geral</h2></div><p>Acompanhe o que importa hoje.</p></div><section className="stats">
@@ -930,11 +931,21 @@ const pet=useMemo(()=>{
       </section>
 
       <section className="pixelCompanionCard">
-        <div className={`pixelStage monkey-${petAnimation}`} onClick={interactWithCompanion} key={`${petAnimation}-${petActionTick}`}>
-          <div className="pixelStageGlow"/><div className="pixelDust">{[1,2,3,4,5,6,7].map(dot=><i key={dot}/>)}</div>
-          <img className="pixelCompanionArt" src={PET_ACTIVE_IMAGE} alt={`${petName} ativo`}/>
+        <div className={`pixelStage monkey-${petAnimation}`} style={{backgroundImage:`linear-gradient(180deg,rgba(3,8,12,.05),rgba(3,8,12,.18)),url(${dailyBoss.scene})`}} key={`${petAnimation}-${petActionTick}`}>
+          <div className="worldSkyGlow"/>
+          <div className="worldCloud cloudOne"/><div className="worldCloud cloudTwo"/>
+          <div className="worldParticles">{[1,2,3,4,5,6,7,8,9].map(dot=><i key={dot}/>)}</div>
+          <button className="worldObject treeObject" aria-label="Explorar árvore" onClick={claimExpedition}><span>🌳</span><small>Explorar</small></button>
+          <button className="worldObject chestObject" aria-label="Abrir baús" onClick={()=>setRpgTab("chests")}><span>🧰</span><small>{chests.length?`${chests.length} baú(s)`:"Baús"}</small></button>
+          <button className="worldObject fireObject" aria-label="Descansar" onClick={()=>setPetAnimation("sleep")}><span>🔥</span><small>Descansar</small></button>
+          <div className="worldPath"/>
+          <button className="animatedCompanionButton" onClick={interactWithCompanion} aria-label={`Interagir com ${petName}`}>
+            <img className="animatedCompanionSprite" src={PET_ACTIVE_IMAGE} onError={event=>{event.currentTarget.onerror=null;event.currentTarget.src=PET_FALLBACK_IMAGE}} alt={`${petName} animado`}/>
+          </button>
           <div className="pixelSpeech">{petMessage}</div>
-          <div className="pixelStageHint">Toque no MicoClock</div>
+          <div className="worldQuestMarker"><span>!</span><small>{(pet.missions.at(-1)?.quests||[]).find(q=>!q.done)?.name||"Jornada concluída"}</small></div>
+          <div className="pixelStageHint">Toque no macaco e nos objetos do cenário</div>
+          <a className="assetCredit" href="https://xeveko.itch.io/free-2d-pixel-art-monkey-king" target="_blank" rel="noreferrer">Sprite público: Xeveko</a>
         </div>
 
         <article className="dailyJourneyDock" style={{backgroundImage:`linear-gradient(90deg,rgba(5,9,13,.25),rgba(5,9,13,.84)),url(${dailyBoss.scene})`}}>
