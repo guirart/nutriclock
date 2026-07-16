@@ -230,6 +230,27 @@ function generateItem(chestTier){
   };
 }
 
+function recoveredStarterInventory(){
+  const now=new Date().toISOString();
+  const recovered=[
+    ITEM_BASES[0],
+    ITEM_BASES[1],
+    ITEM_BASES[2],
+    ITEM_BASES[4]
+  ];
+  return recovered.map((base,index)=>({
+    id:`recovered-${index}-${Date.now()}`,
+    ...base,
+    kind:"equipment",
+    stats:{...base.stats},
+    rarity:index===3?"rare":"normal",
+    rarityName:index===3?"Raro":"Normal",
+    rarityColor:index===3?"#4ea1ff":"#b9c5d3",
+    obtainedAt:now,
+    recovered:true
+  }));
+}
+
 const RECIPES = [
   {id:"omelete-frango",name:"Omelete proteico com frango",image:"/recipes/omelete.svg",calories:360,protein:42,time:"15 min",goals:["lose","maintain","muscle"],ingredients:["2 ovos","100 g de frango","Tomate","Cebola"],steps:["Bata os ovos.","Misture o recheio.","Cozinhe em frigideira antiaderente."]},
   {id:"bowl-frango",name:"Bowl de frango, arroz e feijão",image:"/recipes/bowl-frango.svg",calories:520,protein:46,time:"20 min",goals:["maintain","gain","muscle"],ingredients:["120 g de frango","100 g de arroz","70 g de feijão","Salada"],steps:["Grelhe o frango.","Monte o prato.","Finalize com salada."]},
@@ -379,16 +400,22 @@ export default function Page(){
   const [dailyBossState,setDailyBossState]=useState({date:null,rewardedCount:0});
   const previousDailyDamage=useRef(0);
   const [gems,setGems]=useState(0);
-
-
-
+  const [storageHydrated,setStorageHydrated]=useState(false);
 
   useEffect(()=>{
     setChests(safeRead(CHEST_KEY,[]));
-    setInventory(safeRead(INVENTORY_KEY,[]).map((item,index)=>{
+    const storedInventory=safeRead(INVENTORY_KEY,[]);
+    const recoveryDone=typeof window!=="undefined"&&localStorage.getItem("nutriclock_inventory_recovery_v108")==="1";
+    const inventorySource=storedInventory.length?storedInventory:(!recoveryDone?recoveredStarterInventory():[]);
+    const normalizedInventory=inventorySource.map((item,index)=>{
       const normalizedIcon=normalizeAssetSource(item?.icon);
       return {...item,icon:normalizedIcon||ITEM_BASES[index%ITEM_BASES.length].icon};
-    }));
+    });
+    setInventory(normalizedInventory);
+    if(typeof window!=="undefined"&&!storedInventory.length&&!recoveryDone){
+      localStorage.setItem("nutriclock_inventory_recovery_v108","1");
+      localStorage.setItem(INVENTORY_KEY,JSON.stringify(normalizedInventory));
+    }
     setEquipment(safeRead(EQUIPMENT_KEY,{}));
     setClaims(safeRead(CLAIMS_KEY,{}));
     const savedProfile=safeRead(PROFILE_KEY,DEFAULT_PROFILE);
@@ -438,16 +465,17 @@ export default function Page(){
     const event=expeditionEvents[daySeed%expeditionEvents.length];
     setExpedition(savedExpedition.date===today?savedExpedition:{date:today,claimed:false,event});
     setDailyBossState(savedDailyBoss.date===today?{date:today,rewardedCount:Number(savedDailyBoss.rewardedCount||0)}:{date:today,rewardedCount:0});
+    setStorageHydrated(true);
     load();
     const retry=setTimeout(load,1800);
     const timer=setInterval(load,15000);
     return()=>{clearTimeout(retry);clearInterval(timer)};
   },[selectedDate]);
 
-  useEffect(()=>{if(typeof window!=="undefined") localStorage.setItem(CHEST_KEY,JSON.stringify(chests));},[chests]);
-  useEffect(()=>{if(typeof window!=="undefined") localStorage.setItem(INVENTORY_KEY,JSON.stringify(inventory));},[inventory]);
-  useEffect(()=>{if(typeof window!=="undefined") localStorage.setItem(EQUIPMENT_KEY,JSON.stringify(equipment));},[equipment]);
-  useEffect(()=>{if(typeof window!=="undefined") localStorage.setItem(CLAIMS_KEY,JSON.stringify(claims));},[claims]);
+  useEffect(()=>{if(storageHydrated&&typeof window!=="undefined") localStorage.setItem(CHEST_KEY,JSON.stringify(chests));},[chests,storageHydrated]);
+  useEffect(()=>{if(storageHydrated&&typeof window!=="undefined") localStorage.setItem(INVENTORY_KEY,JSON.stringify(inventory));},[inventory,storageHydrated]);
+  useEffect(()=>{if(storageHydrated&&typeof window!=="undefined") localStorage.setItem(EQUIPMENT_KEY,JSON.stringify(equipment));},[equipment,storageHydrated]);
+  useEffect(()=>{if(storageHydrated&&typeof window!=="undefined") localStorage.setItem(CLAIMS_KEY,JSON.stringify(claims));},[claims,storageHydrated]);
   useEffect(()=>{if(typeof window!=="undefined") localStorage.setItem(PROFILE_KEY,JSON.stringify(profile));},[profile]);
   useEffect(()=>{if(typeof window!=="undefined") localStorage.setItem(PET_STATE_KEY,JSON.stringify(petNeeds));},[petNeeds]);
   useEffect(()=>{if(typeof window!=="undefined") localStorage.setItem(DAILY_LOGIN_KEY,JSON.stringify(dailyLogin));},[dailyLogin]);

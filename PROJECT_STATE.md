@@ -83,3 +83,9 @@ v9.1 — Conselho de Gamificação Integrado
 - Molduras brancas removidas do RPG.
 - Molduras de bambu implementadas em CSS, sem criação de imagens novas.
 - Paleta escura e contraste do NutriClock preservados.
+
+## v10.8
+- Corrigida corrida de inicialização que podia sobrescrever inventário e baús com arrays vazios antes da leitura do localStorage.
+- Adicionada recuperação única de quatro equipamentos básicos para instalações afetadas pelo bug.
+- Layout do companheiro reorganizado para eliminar espaço vazio: cena ocupa duas linhas, perfil e ações ficam empilhados à direita.
+- Grade de equipamentos e mochila compactada para manter proporções próximas da referência visual.
