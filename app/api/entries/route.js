@@ -60,7 +60,7 @@ export async function GET(request) {
         error: "Não foi possível carregar os registros.",
         details: error.message
       },
-      { status: 500 }
+      { status: /autenticação|sessão|chave/i.test(error.message) ? 401 : 500 }
     );
   }
 }
@@ -118,7 +118,7 @@ export async function POST(request) {
         error: "Não foi possível criar o registro.",
         details: error.message
       },
-      { status: 500 }
+      { status: /autenticação|sessão|chave/i.test(error.message) ? 401 : 500 }
     );
   }
 }
@@ -187,7 +187,7 @@ export async function PATCH(request) {
         error: "Não foi possível atualizar o registro.",
         details: error.message
       },
-      { status: 500 }
+      { status: /autenticação|sessão|chave/i.test(error.message) ? 401 : 500 }
     );
   }
 }
@@ -222,7 +222,7 @@ export async function DELETE(request) {
         error: "Não foi possível excluir o registro.",
         details: error.message
       },
-      { status: 500 }
+      { status: /autenticação|sessão|chave/i.test(error.message) ? 401 : 500 }
     );
   }
 }

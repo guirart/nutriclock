@@ -99,7 +99,7 @@ export async function GET(request) {
         error: "Não foi possível carregar o resumo.",
         details: error.message
       },
-      { status: 500 }
+      { status: /autenticação|sessão|chave/i.test(error.message) ? 401 : 500 }
     );
   }
 }

@@ -70,3 +70,16 @@ OPENAI_API_KEY=sua_chave_servidor
 ```
 
 Nunca use `NEXT_PUBLIC_OPENAI_API_KEY`. A chave da OpenAI deve existir apenas no servidor.
+
+
+## Integração com GPT sem chave
+
+O contrato disponível em `/api/openapi` usa a rota pública de criação `/api/gpt/entries`. Essa rota não exige sessão nem chave de API e permite somente criar registros. Consultas, edições e exclusões continuam protegidas nas rotas normais do aplicativo.
+
+O usuário que recebe os lançamentos é definido no servidor:
+
+```env
+NUTRICLOCK_GPT_USER_ID=rafael
+```
+
+Caso a variável não exista, o valor padrão é `rafael`. Para contas multiusuário, use nessa variável o mesmo `user_id` armazenado nos registros da conta correta.

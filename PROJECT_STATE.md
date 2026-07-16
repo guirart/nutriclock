@@ -126,3 +126,10 @@ v9.1 — Conselho de Gamificação Integrado
 - O resumo diário é calculado localmente em `America/Sao_Paulo`, evitando divergência de fuso entre API e calendário.
 - Os filtros de data das APIs agora usam intervalo com início inclusivo e próximo dia exclusivo.
 - Build de produção validado no Next.js 15.5.9.
+
+## v12.5 — Integração GPT sem sessão expirada
+
+- O contrato OpenAPI agora declara explicitamente autenticação por `X-API-Key`.
+- As operações externas exigem `X-User-Id`, evitando dependência de sessão Supabase do GPT.
+- Erros de autenticação passam a responder como HTTP 401 em vez de erro interno genérico.
+- Nenhuma alteração visual, de sprite ou de asset foi realizada nesta versão.

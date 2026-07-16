@@ -1,3 +1,78 @@
 import { NextResponse } from "next/server";
-const baseSpec = {"openapi": "3.1.0", "info": {"title": "NutriClock API", "version": "4.0.0"}, "servers": [{"url": "https://nutriclock.vercel.app"}], "components": {"schemas": {}}, "paths": {"/api/entries": {"get": {"operationId": "listNutritionEntries", "summary": "Listar registros", "parameters": [{"name": "date", "in": "query", "schema": {"type": "string", "format": "date"}}, {"name": "limit", "in": "query", "schema": {"type": "integer"}}], "responses": {"200": {"description": "OK"}}}, "post": {"operationId": "createNutritionEntry", "summary": "Criar registros", "requestBody": {"required": true, "content": {"application/json": {"schema": {"type": "object", "required": ["entries"], "properties": {"user_id": {"type": "string"}, "entries": {"type": "array", "items": {"type": "object", "required": ["type", "description"], "properties": {"type": {"type": "string", "enum": ["meal", "exercise", "water", "caffeine", "weight"]}, "description": {"type": "string"}, "calories": {"type": "number"}, "protein_g": {"type": "number"}, "carbs_g": {"type": "number"}, "fat_g": {"type": "number"}, "fiber_g": {"type": "number"}, "water_ml": {"type": "number"}, "caffeine_mg": {"type": "number"}, "weight_kg": {"type": ["number", "null"]}, "confidence": {"type": "string"}, "notes": {"type": ["string", "null"]}, "source": {"type": "string"}, "occurred_at": {"type": "string", "format": "date-time"}}}}}}}}}, "responses": {"201": {"description": "Criado"}}}, "patch": {"operationId": "updateNutritionEntry", "summary": "Atualizar registro", "requestBody": {"required": true, "content": {"application/json": {"schema": {"type": "object", "required": ["id"], "properties": {"id": {"type": "string"}, "description": {"type": "string"}, "calories": {"type": "number"}, "protein_g": {"type": "number"}, "carbs_g": {"type": "number"}, "fat_g": {"type": "number"}, "fiber_g": {"type": "number"}}}}}}, "responses": {"200": {"description": "Atualizado"}}}, "delete": {"operationId": "deleteNutritionEntry", "summary": "Excluir registro", "parameters": [{"name": "id", "in": "query", "required": true, "schema": {"type": "string"}}], "responses": {"200": {"description": "Excluído"}}}}, "/api/summary": {"get": {"operationId": "getDailyNutritionSummary", "summary": "Resumo diário", "parameters": [{"name": "date", "in": "query", "schema": {"type": "string", "format": "date"}}], "responses": {"200": {"description": "OK"}}}}}};
-export async function GET(request){const spec=structuredClone(baseSpec);spec.servers=[{url:new URL(request.url).origin}];return NextResponse.json(spec);}
+
+const nutritionEntrySchema = {
+  type: "object",
+  required: ["type", "description"],
+  properties: {
+    type: {
+      type: "string",
+      enum: ["meal", "exercise", "water", "caffeine", "weight"]
+    },
+    description: { type: "string" },
+    calories: { type: "number" },
+    protein_g: { type: "number" },
+    carbs_g: { type: "number" },
+    fat_g: { type: "number" },
+    fiber_g: { type: "number" },
+    water_ml: { type: "number" },
+    caffeine_mg: { type: "number" },
+    weight_kg: { type: ["number", "null"] },
+    confidence: { type: "string" },
+    notes: { type: ["string", "null"] },
+    source: { type: "string" },
+    occurred_at: { type: "string", format: "date-time" }
+  }
+};
+
+const baseSpec = {
+  openapi: "3.1.0",
+  info: {
+    title: "NutriClock GPT Registration API",
+    version: "5.0.0",
+    description:
+      "Rota exclusiva para o GPT registrar refeições, exercícios, água, cafeína e peso no NutriClock. Não exige login, sessão ou chave de API. Por segurança, esta integração não permite consultar, editar ou excluir registros."
+  },
+  servers: [{ url: "https://nutriclock.vercel.app" }],
+  paths: {
+    "/api/gpt/entries": {
+      post: {
+        operationId: "createNutritionEntry",
+        summary: "Registrar uma ou mais entradas no NutriClock",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                oneOf: [
+                  nutritionEntrySchema,
+                  {
+                    type: "object",
+                    required: ["entries"],
+                    properties: {
+                      entries: {
+                        type: "array",
+                        minItems: 1,
+                        items: nutritionEntrySchema
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        responses: {
+          "201": { description: "Registro criado com sucesso." },
+          "400": { description: "Dados inválidos." },
+          "500": { description: "Erro interno ao registrar." }
+        }
+      }
+    }
+  }
+};
+
+export async function GET(request) {
+  const spec = structuredClone(baseSpec);
+  spec.servers = [{ url: new URL(request.url).origin }];
+  return NextResponse.json(spec);
+}
