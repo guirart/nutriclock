@@ -58,3 +58,10 @@ v9.1 — Conselho de Gamificação Integrado
 - Legacy emoji inventory icons are migrated to asset images when loaded.
 - Weekly boss rotates automatically according to the calendar week.
 - Weekly bosses use the existing animated enemy sprites and humorous names.
+
+## v10.0 — Correção definitiva de contraste do RPG
+- Removido o preenchimento central claro das molduras do UI Essentials.
+- UI Essentials agora é usado como borda, preservando a paleta escura do NutriClock.
+- Painéis, botões, slots, barras, missões, inventário e chefe semanal receberam fundos escuros explícitos.
+- Títulos e textos receberam contraste consistente e tokens de cor centralizados no escopo `.pixelPetPage`.
+- Build de produção validado com Next.js 15.5.9.

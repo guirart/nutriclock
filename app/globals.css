@@ -634,3 +634,97 @@ button:active{transform:translateY(1px)}
 @media(max-width:430px){
   .pixelFullEquipment,.pixelItemGrid{grid-template-columns:1fr!important}
 }
+
+/* v10.0 — correção definitiva de contraste do UI Essentials
+   Os arquivos do pacote são usados somente como molduras. O centro das imagens
+   não é preenchido, evitando painéis claros sobre a paleta escura do NutriClock. */
+.pixelPetPage{
+  --rpg-bg:#071018;
+  --rpg-panel:#0d1822;
+  --rpg-panel-2:#111f2b;
+  --rpg-panel-3:#162735;
+  --rpg-text:#f4f1df;
+  --rpg-muted:#9eb2c2;
+  --rpg-border:#385267;
+  color:var(--rpg-text)!important;
+}
+.pixelPetPage .pixelWindow,
+.pixelPetPage .pixelBossCard,
+.pixelPetPage .dailyLoginCard,
+.pixelPetPage .pixelCompanionCard,
+.pixelPetPage .pixelTabs,
+.pixelPetPage .expeditionCard,
+.pixelPetPage .dailyJourneyDock{
+  border-image-slice:20!important;
+  border-image-width:12px!important;
+  border-image-repeat:stretch!important;
+  background:linear-gradient(180deg,var(--rpg-panel-2),var(--rpg-panel))!important;
+  color:var(--rpg-text)!important;
+}
+.pixelPetPage .pixelBossCard,
+.pixelPetPage .dailyJourneyDock{
+  background:linear-gradient(180deg,#21142c,#101923)!important;
+}
+.pixelPetPage button:not(.animatedCompanionButton):not(.worldObject){
+  border-image-slice:12!important;
+  border-image-width:10px!important;
+  border-image-repeat:stretch!important;
+  background:linear-gradient(180deg,#223a49,#142632)!important;
+  color:var(--rpg-text)!important;
+  text-shadow:1px 1px 0 #000!important;
+}
+.pixelPetPage button:not(.animatedCompanionButton):not(.worldObject):hover{
+  background:linear-gradient(180deg,#2c5062,#193543)!important;
+}
+.pixelPetPage .pixelVitals>div,
+.pixelPetPage .missionMiniBar,
+.pixelPetPage .pixelBossHp,
+.pixelPetPage .dailyBossHp{
+  border-image-slice:3!important;
+  border-image-width:6px!important;
+  border-image-repeat:stretch!important;
+  background:#070d13!important;
+}
+.pixelPetPage .pixelEquipmentSlots button,
+.pixelPetPage .pixelInventoryQuick button,
+.pixelPetPage .pixelFullEquipment article,
+.pixelPetPage .pixelItemGrid article{
+  border-image-slice:10!important;
+  border-image-width:10px!important;
+  border-image-repeat:stretch!important;
+  background:linear-gradient(145deg,#142330,#0b151e)!important;
+  color:var(--rpg-text)!important;
+}
+.pixelPetPage .pixelWindowTitle{
+  background:linear-gradient(90deg,#162735,#0d1822)!important;
+  border:1px solid var(--rpg-border)!important;
+  box-shadow:inset 0 -2px 0 #071018!important;
+  color:#ffe9a8!important;
+  text-shadow:1px 1px 0 #000!important;
+}
+.pixelPetPage .pixelMission,
+.pixelPetPage .bossCombatStats span,
+.pixelPetPage .dailyBossReward,
+.pixelPetPage .rewardChip,
+.pixelPetPage .quickStats span{
+  background:#0b1720!important;
+  color:var(--rpg-text)!important;
+  border-color:#2b4558!important;
+}
+.pixelPetPage p,
+.pixelPetPage small,
+.pixelPetPage .muted,
+.pixelPetPage .missionContent p,
+.pixelPetPage .missionContent small{
+  color:var(--rpg-muted)!important;
+}
+.pixelPetPage h1,.pixelPetPage h2,.pixelPetPage h3,.pixelPetPage h4,
+.pixelPetPage strong,.pixelPetPage b,.pixelPetPage label{
+  color:var(--rpg-text)!important;
+}
+.pixelPetPage .pixelBossCard{border-top-color:#d69b2d!important}
+.pixelPetPage .pixelBossCard .pixelBossHead,
+.pixelPetPage .dailyJourneyDock header{
+  background:#171122!important;
+  color:var(--rpg-text)!important;
+}
