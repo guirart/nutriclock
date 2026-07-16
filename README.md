@@ -58,3 +58,16 @@ O Monkey King agora é animado em quadros completos de 64x32 px. Isso impede o e
 
 ### v10.7
 A interface RPG usa molduras de bambu programadas em CSS e o Monkey King foi ampliado em 200%.
+
+## NutriAssist — análise de refeições por foto
+
+A aba **Assistente** permite tirar/enviar uma foto, adicionar observações, receber uma estimativa estruturada e confirmar o registro no Supabase.
+
+Variáveis adicionais na Vercel:
+
+```env
+OPENAI_API_KEY=sua_chave_servidor
+OPENAI_VISION_MODEL=gpt-4.1-mini
+```
+
+Nunca use `NEXT_PUBLIC_OPENAI_API_KEY`. A chave da OpenAI deve existir apenas no servidor.

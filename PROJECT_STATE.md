@@ -103,3 +103,11 @@ v9.1 — Conselho de Gamificação Integrado
 - O app exibe uma tela de configuração clara com os nomes exatos das variáveis.
 - Inicialização de sessão, listener de autenticação e logout possuem tratamento de erro.
 - Foi adicionado um Error Boundary para exceções de cliente.
+
+
+## v12.1 — NutriAssist
+- Aba Assistente com captura/upload de foto.
+- Análise nutricional estruturada pela OpenAI.
+- Confirmação antes do registro.
+- Registro multiusuário no Supabase.
+- Chave da OpenAI protegida no servidor.
