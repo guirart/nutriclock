@@ -766,3 +766,19 @@ button:active{transform:translateY(1px)}
 @media(prefers-reduced-motion:reduce){
   .monkeyKingSprite.state-idle,.monkeyKingSprite.state-look{animation:none!important}
 }
+
+/* v10.2 — correção do estado neutro do Monkey King */
+.monkeyKingSprite.state-idle,
+.monkeyKingSprite.state-look{
+  background-position:0 0!important;
+  animation:none!important;
+  transform:scale(-6,6)!important;
+}
+@media(max-width:800px){
+  .monkeyKingSprite.state-idle,
+  .monkeyKingSprite.state-look{transform:scale(-5.2,5.2)!important}
+}
+@media(max-width:520px){
+  .monkeyKingSprite.state-idle,
+  .monkeyKingSprite.state-look{transform:scale(-4.4,4.4)!important}
+}
