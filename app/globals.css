@@ -500,3 +500,20 @@ button:active{transform:translateY(1px)}
 .enemyArena{background-image:linear-gradient(90deg,rgba(5,9,13,.55),rgba(5,9,13,.9)),url('/game/cafe/clearing.png')!important;background-size:cover!important;background-position:center!important}.dailyBossArt{min-height:145px}.enemyAnimatedSprite{display:block;width:32px;height:32px;background-repeat:no-repeat;background-position:0 0;image-rendering:pixelated;transform:scale(4);transform-origin:center bottom;filter:drop-shadow(0 5px 2px #0009)}.enemy-skeleton1 .enemyAnimatedSprite{background-image:url('/game/enemies/enemies-skeleton1_idle.png');animation:enemySkeletonIdle .9s steps(6) infinite}.enemy-skeleton2 .enemyAnimatedSprite{background-image:url('/game/enemies/enemies-skeleton2_idle.png');animation:enemySkeletonIdle .9s steps(6) infinite}.enemy-vampire .enemyAnimatedSprite{background-image:url('/game/enemies/enemies-vampire_idle.png');animation:enemySkeletonIdle .9s steps(6) infinite}@keyframes enemySkeletonIdle{to{background-position:-192px 0}}.dailyBossArt.defeated .enemyAnimatedSprite{animation:none;filter:grayscale(1) drop-shadow(0 5px 2px #0009);opacity:.45;transform:scale(4) rotate(90deg)}
 @media(max-width:520px){.currencyCluster{align-items:stretch;flex-direction:column}.gemWallet{justify-content:center}.animatedCompanionButton{width:150px!important;height:150px!important}.monkeyKingSprite{transform:scale(2.5)}.enemyAnimatedSprite{transform:scale(3)}.dailyBossArt.defeated .enemyAnimatedSprite{transform:scale(3) rotate(90deg)}}
 @media(prefers-reduced-motion:reduce){.monkeyKingSprite,.enemyAnimatedSprite{animation:none!important}}
+
+
+/* v9.5 — combate sequencial e Monkey King ampliado */
+.cafeTableObject,.chestObject,.fireObject{display:none!important}
+.animatedCompanionButton{width:300px!important;height:300px!important;bottom:24px!important}
+.monkeyKingSprite{width:32px!important;height:32px!important;transform:scale(6)!important;background-size:auto!important}
+.monkeyKingSprite.state-idle,.monkeyKingSprite.state-look,.monkeyKingSprite.state-wave,.monkeyKingSprite.state-eat,.monkeyKingSprite.state-sad,.monkeyKingSprite.state-tired{background-position:0 0;animation:monkeyKingIdleV95 .9s steps(8) infinite}
+.monkeyKingSprite.state-happy,.monkeyKingSprite.state-love,.monkeyKingSprite.state-celebrate{background-position:0 -32px;animation:monkeyKingCelebrateV95 .75s steps(6) infinite}
+.monkeyKingSprite.state-train,.monkeyKingSprite.state-attack{background-position:0 -160px;animation:monkeyKingStaffAttackV95 1.35s steps(34) 1 both}
+.monkeyKingSprite.state-sleep{background-position:0 -224px;animation:monkeyKingSleepV95 1.2s steps(4) infinite}
+@keyframes monkeyKingIdleV95{to{background-position:-256px 0}}
+@keyframes monkeyKingCelebrateV95{to{background-position:-192px -32px}}
+@keyframes monkeyKingStaffAttackV95{to{background-position:-1088px -160px}}
+@keyframes monkeyKingSleepV95{to{background-position:-128px -224px}}
+.nextEnemyNotice{position:absolute;z-index:4;right:14px;bottom:12px;max-width:260px;padding:7px 10px;border:2px solid #3a5665;background:#0c151bd9;color:#b9dbe7;font-size:8px;line-height:1.4;text-align:right}
+@media(max-width:800px){.animatedCompanionButton{width:260px!important;height:260px!important}.monkeyKingSprite{transform:scale(5.2)!important}}
+@media(max-width:520px){.animatedCompanionButton{width:220px!important;height:220px!important;bottom:28px!important}.monkeyKingSprite{transform:scale(4.4)!important}.nextEnemyNotice{left:12px;right:12px;max-width:none;text-align:center}}

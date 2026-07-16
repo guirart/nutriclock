@@ -1,6 +1,6 @@
  'use client';
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Home as HomeIcon, Utensils, History, BarChart3, User, Gamepad2,
   Flame, Dumbbell, Scale, Droplets, Coffee, Beef, Plus, Pencil,
@@ -329,7 +329,8 @@ export default function Page(){
   const [editingPetName,setEditingPetName]=useState(false);
   const [petNameDraft,setPetNameDraft]=useState("MicoClock");
   const [expedition,setExpedition]=useState({date:null,claimed:false,event:null});
-  const [dailyBossState,setDailyBossState]=useState({date:null,claimed:false});
+  const [dailyBossState,setDailyBossState]=useState({date:null,rewardedCount:0});
+  const previousDailyDamage=useRef(0);
   const [gems,setGems]=useState(0);
 
 
@@ -348,7 +349,7 @@ export default function Page(){
     const savedActions=safeRead(PET_ACTIONS_KEY,{date:dateKey(),interactions:0,feeds:0,trainings:0});
     const savedPetName=typeof window!=="undefined"?(localStorage.getItem(PET_NAME_KEY)||"MicoClock"):"MicoClock";
     const savedExpedition=safeRead(EXPEDITION_KEY,{date:null,claimed:false,event:null});
-    const savedDailyBoss=safeRead(DAILY_BOSS_KEY,{date:null,claimed:false});
+    const savedDailyBoss=safeRead(DAILY_BOSS_KEY,{date:null,rewardedCount:0});
     const savedGems=Number(typeof window!=="undefined"?localStorage.getItem(GEM_KEY):0)||0;
     setGems(savedGems);
     setPetName(savedPetName);
@@ -384,7 +385,7 @@ export default function Page(){
     const daySeed=Number(today.replaceAll("-",""));
     const event=expeditionEvents[daySeed%expeditionEvents.length];
     setExpedition(savedExpedition.date===today?savedExpedition:{date:today,claimed:false,event});
-    setDailyBossState(savedDailyBoss.date===today?savedDailyBoss:{date:today,claimed:false});
+    setDailyBossState(savedDailyBoss.date===today?{date:today,rewardedCount:Number(savedDailyBoss.rewardedCount||0)}:{date:today,rewardedCount:0});
     load();
     const retry=setTimeout(load,1800);
     const timer=setInterval(load,15000);
@@ -765,24 +766,70 @@ const pet=useMemo(()=>{
   const dailyBoss=useMemo(()=>{
     const today=dateKey();
     const seed=Number(today.replaceAll("-",""));
-    const definition=DAILY_BOSSES[seed%DAILY_BOSSES.length];
+    const startIndex=seed%DAILY_BOSSES.length;
     const todayMission=pet?.missions?.at(-1);
     const missionDamage=(todayMission?.quests||[]).filter(quest=>quest.done).reduce((sum,quest)=>sum+quest.xp,0);
-    const actionDamage=(petActions.interactions||0)*2+(petActions.feeds||0)*3+(petActions.trainings||0)*12;
+    // Interagir e alimentar cuidam do companheiro, mas não causam dano.
+    const combatDamage=(petActions.trainings||0)*12;
     const equipmentBonus=Math.round(Object.values(totalStats).reduce((sum,value)=>sum+Number(value||0),0)*.6);
-    const damage=Math.min(definition.maxHp,missionDamage+actionDamage+equipmentBonus);
-    const hp=Math.max(0,definition.maxHp-damage);
-    return {...definition,damage,hp,percent:Math.round((hp/definition.maxHp)*100),defeated:hp===0};
-  },[pet,petActions,totalStats]);
+    const totalDamage=Math.max(0,missionDamage+combatDamage+equipmentBonus);
+    let remainingDamage=totalDamage;
+    let defeatedCount=0;
+    const defeatedBosses=[];
+    while(defeatedCount<50){
+      const candidate=DAILY_BOSSES[(startIndex+defeatedCount)%DAILY_BOSSES.length];
+      if(remainingDamage<candidate.maxHp) break;
+      remainingDamage-=candidate.maxHp;
+      defeatedBosses.push(candidate);
+      defeatedCount+=1;
+    }
+    const definition=DAILY_BOSSES[(startIndex+defeatedCount)%DAILY_BOSSES.length];
+    const hp=Math.max(1,definition.maxHp-remainingDamage);
+    return {
+      ...definition,
+      wave:defeatedCount+1,
+      damage:remainingDamage,
+      totalDamage,
+      hp,
+      percent:Math.round((hp/definition.maxHp)*100),
+      defeated:false,
+      defeatedCount,
+      defeatedBosses
+    };
+  },[pet,petActions.trainings,totalStats]);
 
-  function claimDailyBossReward(){
-    if(!dailyBoss.defeated||dailyBossState.claimed) return;
-    setPetNeeds(current=>({...current,bananas:current.bananas+dailyBoss.reward.bananas,happiness:Math.min(100,current.happiness+10)}));
-    setGems(current=>current+(dailyBoss.reward.gems||0));
-    awardChest("daily-boss",dailyBoss.reward.chest,`Tesouro de ${dailyBoss.name}`);
-    setDailyBossState({date:dateKey(),claimed:true,bossId:dailyBoss.id});
-    runPetAction("celebrate",`${dailyBoss.name} derrotado! Recompensa adicionada.`);
-  }
+  useEffect(()=>{
+    if(active!=="pet") {
+      previousDailyDamage.current=dailyBoss.totalDamage;
+      return;
+    }
+    if(dailyBoss.totalDamage>previousDailyDamage.current){
+      setPetAnimation("attack");
+      setPetMessage(`Golpe aplicado em ${dailyBoss.name}!`);
+      setPetActionTick(value=>value+1);
+      const timer=window.setTimeout(()=>setPetAnimation("idle"),1900);
+      previousDailyDamage.current=dailyBoss.totalDamage;
+      return()=>window.clearTimeout(timer);
+    }
+    previousDailyDamage.current=dailyBoss.totalDamage;
+  },[active,dailyBoss.totalDamage,dailyBoss.name]);
+
+  useEffect(()=>{
+    const rewarded=Number(dailyBossState.rewardedCount||0);
+    if(dailyBoss.defeatedCount<=rewarded) return;
+    const newlyDefeated=dailyBoss.defeatedBosses.slice(rewarded);
+    if(!newlyDefeated.length) return;
+    const bananaReward=newlyDefeated.reduce((sum,boss)=>sum+Number(boss.reward.bananas||0),0);
+    const gemReward=newlyDefeated.reduce((sum,boss)=>sum+Number(boss.reward.gems||0),0);
+    setPetNeeds(current=>({...current,bananas:current.bananas+bananaReward,happiness:Math.min(100,current.happiness+(10*newlyDefeated.length))}));
+    setGems(current=>current+gemReward);
+    setChests(current=>[...current,...newlyDefeated.map((boss,index)=>({
+      id:`chest-daily-${dateKey()}-${rewarded+index}-${boss.id}`,
+      type:"daily-boss",tier:boss.reward.chest,title:`Tesouro de ${boss.name}`,earnedAt:new Date().toISOString()
+    }))]);
+    setDailyBossState({date:dateKey(),rewardedCount:dailyBoss.defeatedCount});
+    runPetAction("celebrate",`${newlyDefeated.at(-1).name} derrotado! Um novo inimigo entrou na clareira.`);
+  },[dailyBoss.defeatedCount,dailyBoss.defeatedBosses,dailyBossState.rewardedCount]);
 
 
 
@@ -820,7 +867,7 @@ const pet=useMemo(()=>{
   return <main className="shell">
     <header className="topbar">
       <div className="brand"><div className="logoMark">N</div><div><h1>NutriClock</h1><p>Acompanhamento nutricional e hábitos</p></div></div>
-      <div className="mode"><span className="modeDot"/>Conselho integrado · v9.3</div>
+      <div className="mode"><span className="modeDot"/>Conselho integrado · v9.5</div>
     </header>
 {active==="home"&&<>
       <div className="sectionIntro"><div><span>Resumo diário</span><h2>Visão geral</h2></div><p>Acompanhe o que importa hoje.</p></div><section className="stats">
@@ -939,21 +986,18 @@ const pet=useMemo(()=>{
         <div className={`pixelStage monkey-${petAnimation}`} key={`${petAnimation}-${petActionTick}`}>
           <div className="cafeTileBackdrop"/>
           <div className="worldParticles">{[1,2,3,4,5,6,7,8,9].map(dot=><i key={dot}/>)}</div>
-          <button className="worldObject cafeTableObject" aria-label="Explorar a clareira" onClick={claimExpedition}><span>☕</span><small>Explorar</small></button>
-          <button className="worldObject chestObject" aria-label="Abrir baús" onClick={()=>setRpgTab("chests")}><span>🧰</span><small>{chests.length?`${chests.length} baú(s)`:"Baús"}</small></button>
-          <button className="worldObject fireObject" aria-label="Descansar" onClick={()=>setPetAnimation("sleep")}><span>🔥</span><small>Descansar</small></button>
           <button className="animatedCompanionButton" onClick={interactWithCompanion} aria-label={`Interagir com ${petName}`}>
             <span className={`monkeyKingSprite state-${petAnimation}`} role="img" aria-label={`${petName} animado`}/>
           </button>
           <div className="pixelSpeech">{petMessage}</div>
           <div className="worldQuestMarker"><span>!</span><small>{(pet.missions.at(-1)?.quests||[]).find(q=>!q.done)?.name||"Jornada concluída"}</small></div>
-          <div className="pixelStageHint">Toque no Monkey King e nos objetos da clareira</div>
+          <div className="pixelStageHint">Toque no Monkey King para interagir</div>
           <span className="assetCredit">Sprites integrados dos arquivos enviados</span>
         </div>
 
         <article className="dailyJourneyDock enemyArena">
           <div className="dailyJourneyCopy">
-            <small>JORNADA DIÁRIA · {dailyBoss.environment}</small>
+            <small>JORNADA DIÁRIA · ONDA {dailyBoss.wave} · {dailyBoss.environment}</small>
             <h3>{dailyBoss.name}</h3>
             <p>{dailyBoss.story}</p>
             <div className="dailyBossHpLabels"><span>{dailyBoss.hp} / {dailyBoss.maxHp} HP</span><b>{dailyBoss.damage} de dano</b></div>
@@ -961,9 +1005,7 @@ const pet=useMemo(()=>{
             <div className="dailyJourneyReward"><span>🍌 {dailyBoss.reward.bananas}</span><span><i className="gemIcon tiny"/> {dailyBoss.reward.gems} gems</span><span>🧰 Baú {dailyBoss.reward.chest}</span></div>
           </div>
           <div className={`dailyBossArt enemy-${dailyBoss.enemy} ${dailyBoss.defeated?"defeated":""}`}><span className="enemyAnimatedSprite" role="img" aria-label={dailyBoss.name}/></div>
-          <button className={dailyBoss.defeated?"rewardReady":""} disabled={!dailyBoss.defeated||dailyBossState.claimed} onClick={claimDailyBossReward}>
-            {dailyBossState.claimed?"Recompensa coletada":dailyBoss.defeated?"Coletar vitória":"Conclua hábitos para atacar"}
-          </button>
+          <div className="nextEnemyNotice">Ao derrotar este inimigo, o próximo entra automaticamente e a recompensa é recebida.</div>
         </article>
 
         <div className="pixelCharacterInfo">
