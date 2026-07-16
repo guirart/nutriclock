@@ -728,3 +728,41 @@ button:active{transform:translateY(1px)}
   background:#171122!important;
   color:var(--rpg-text)!important;
 }
+
+/* v10.1 — mapeamento fiel das linhas do spritesheet Monkey King */
+.monkeyKingSprite.state-idle,
+.monkeyKingSprite.state-look{
+  background-position:0 0!important;
+  animation:monkeyKingRow1Idle .9s steps(8) infinite!important;
+}
+.monkeyKingSprite.state-interact,
+.monkeyKingSprite.state-wave{
+  background-position:0 -224px!important;
+  animation:monkeyKingRow8Interact 1.15s steps(20) 1 both!important;
+}
+.monkeyKingSprite.state-train4{
+  background-position:0 -96px!important;
+  animation:monkeyKingRow4Train 1s steps(14) 1 both!important;
+}
+.monkeyKingSprite.state-train5{
+  background-position:0 -128px!important;
+  animation:monkeyKingRow5Train 1.05s steps(16) 1 both!important;
+}
+.monkeyKingSprite.state-train6,
+.monkeyKingSprite.state-attack{
+  background-position:0 -160px!important;
+  animation:monkeyKingRow6Train 1.35s steps(34) 1 both!important;
+}
+.monkeyKingSprite.state-train7{
+  background-position:0 -192px!important;
+  animation:monkeyKingRow7Train 1.2s steps(28) 1 both!important;
+}
+@keyframes monkeyKingRow1Idle{to{background-position:-256px 0}}
+@keyframes monkeyKingRow4Train{to{background-position:-448px -96px}}
+@keyframes monkeyKingRow5Train{to{background-position:-512px -128px}}
+@keyframes monkeyKingRow6Train{to{background-position:-1088px -160px}}
+@keyframes monkeyKingRow7Train{to{background-position:-896px -192px}}
+@keyframes monkeyKingRow8Interact{to{background-position:-640px -224px}}
+@media(prefers-reduced-motion:reduce){
+  .monkeyKingSprite.state-idle,.monkeyKingSprite.state-look{animation:none!important}
+}

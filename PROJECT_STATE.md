@@ -65,3 +65,9 @@ v9.1 — Conselho de Gamificação Integrado
 - Painéis, botões, slots, barras, missões, inventário e chefe semanal receberam fundos escuros explícitos.
 - Títulos e textos receberam contraste consistente e tokens de cor centralizados no escopo `.pixelPetPage`.
 - Build de produção validado com Next.js 15.5.9.
+
+## v10.1 — animações do Monkey King por linha
+- Estado neutro: animação da linha 1 do spritesheet.
+- Treinar: seleciona aleatoriamente uma animação entre as linhas 4, 5, 6 e 7.
+- Interagir: usa exclusivamente a animação da linha 8.
+- Ataques automáticos ao chefe usam a sequência da linha 6.

@@ -639,7 +639,7 @@ export default function Page(){
       "Estou ficando mais forte com sua disciplina."
     ];
     setPetActions(current=>({...current,interactions:current.interactions+1}));
-    runPetAction("wave",messages[Math.floor(Math.random()*messages.length)],current=>({
+    runPetAction("interact",messages[Math.floor(Math.random()*messages.length)],current=>({
       ...current,happiness:Math.min(100,current.happiness+8)
     }));
   }
@@ -673,7 +673,7 @@ export default function Page(){
       return;
     }
     setPetActions(current=>({...current,trainings:current.trainings+1}));
-    runPetAction("attack","Treino concluído! Estou pronto para enfrentar o chefe.",current=>({
+    runPetAction(`train${4+Math.floor(Math.random()*4)}`,"Treino concluído! Estou pronto para enfrentar o chefe.",current=>({
       ...current,energy:Math.max(0,current.energy-12),hunger:Math.min(100,current.hunger+7),happiness:Math.min(100,current.happiness+2)
     }));
   }
@@ -880,7 +880,7 @@ const pet=useMemo(()=>{
       return;
     }
     if(dailyBoss.totalDamage>previousDailyDamage.current){
-      setPetAnimation("attack");
+      setPetAnimation("train6");
       setPetMessage(`Golpe aplicado em ${dailyBoss.name}!`);
       setPetActionTick(value=>value+1);
       const timer=window.setTimeout(()=>setPetAnimation("idle"),1900);
