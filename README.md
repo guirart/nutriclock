@@ -67,7 +67,6 @@ Variáveis adicionais na Vercel:
 
 ```env
 OPENAI_API_KEY=sua_chave_servidor
-OPENAI_VISION_MODEL=gpt-4.1-mini
 ```
 
 Nunca use `NEXT_PUBLIC_OPENAI_API_KEY`. A chave da OpenAI deve existir apenas no servidor.

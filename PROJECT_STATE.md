@@ -111,3 +111,11 @@ v9.1 — Conselho de Gamificação Integrado
 - Confirmação antes do registro.
 - Registro multiusuário no Supabase.
 - Chave da OpenAI protegida no servidor.
+## v12.2 — Modelo OpenAI fixo em TypeScript
+
+- A rota `app/api/ai/analyze-meal/route.ts` agora é TypeScript.
+- O modelo foi fixado no backend como `gpt-4.1-mini`.
+- A variável `OPENAI_VISION_MODEL` não é mais necessária.
+- Permanece necessária apenas a variável secreta `OPENAI_API_KEY`.
+- Build de produção validado no Next.js 15.5.9.
+
