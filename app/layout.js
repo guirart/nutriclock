@@ -1,4 +1,5 @@
 import "./globals.css";
+import { AuthProvider } from "../components/providers/AuthProvider";
 
 export const metadata = {
   title: "NutriClock",
@@ -7,5 +8,5 @@ export const metadata = {
 };
 
 export default function RootLayout({ children }) {
-  return <html lang="pt-BR"><body>{children}</body></html>;
+  return <html lang="pt-BR"><body><AuthProvider>{children}</AuthProvider></body></html>;
 }
