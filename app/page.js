@@ -124,6 +124,15 @@ const ITEM_BASES = [
   {name:"Totem do Gorila",icon:"🗿",slot:"amulet",stats:{strength:3,determination:4}}
 ];
 
+const CARE_ITEM_BASES = [
+  {name:"Bola de Cipó",icon:"🟢",kind:"care",effect:"happiness",amount:18,description:"Brinquedo que aumenta a felicidade."},
+  {name:"Tambor Tribal",icon:"🥁",kind:"care",effect:"happiness",amount:28,description:"Brinquedo raro para animar o companheiro."},
+  {name:"Rede de Descanso",icon:"🛏️",kind:"care",effect:"energy",amount:24,description:"Recupera energia e melhora o descanso."},
+  {name:"Chá da Floresta",icon:"🍵",kind:"care",effect:"energy",amount:16,description:"Recupera energia para as próximas missões."},
+  {name:"Banana Dourada",icon:"🍌",kind:"care",effect:"banana",amount:3,description:"Adiciona bananas à reserva."},
+  {name:"Boneco de Treino",icon:"🧸",kind:"care",effect:"both",amount:14,description:"Aumenta felicidade e energia."}
+];
+
 const SLOT_LABELS = {
   weapon:"Arma",head:"Cabeça",body:"Corpo",feet:"Pés",ring:"Anel",amulet:"Amuleto"
 };
@@ -157,7 +166,22 @@ function rollRarity(chestTier="normal"){
 
 function generateItem(chestTier){
   const rarity=rollRarity(chestTier);
-  const base=ITEM_BASES[Math.floor(Math.random()*ITEM_BASES.length)];
+  const careChance={normal:.38,rare:.34,epic:.28,legendary:.22,mythic:.18}[chestTier]??.35;
+  const isCare=Math.random()<careChance;
+  const base=isCare
+    ?CARE_ITEM_BASES[Math.floor(Math.random()*CARE_ITEM_BASES.length)]
+    :ITEM_BASES[Math.floor(Math.random()*ITEM_BASES.length)];
+
+  if(isCare){
+    return {
+      id:`care-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      ...base,
+      amount:Math.max(1,Math.round(base.amount*rarity.multiplier)),
+      rarity:rarity.id,rarityName:rarity.name,rarityColor:rarity.color,
+      obtainedAt:new Date().toISOString()
+    };
+  }
+
   const stats=Object.fromEntries(
     Object.entries(base.stats).map(([key,value])=>[
       key,Math.max(1,Math.round(value*rarity.multiplier))
@@ -165,7 +189,7 @@ function generateItem(chestTier){
   );
   return {
     id:`item-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-    ...base,stats,rarity:rarity.id,rarityName:rarity.name,
+    ...base,kind:"equipment",stats,rarity:rarity.id,rarityName:rarity.name,
     rarityColor:rarity.color,obtainedAt:new Date().toISOString()
   };
 }
@@ -311,7 +335,13 @@ export default function Page(){
     setPetNameDraft(savedPetName);
     const today=dateKey();
     let nextLogin=savedLogin;
-    let nextPet=savedPet;
+    const elapsedDays=savedLogin.lastLogin?Math.max(0,dayDifference(savedLogin.lastLogin,today)):0;
+    let nextPet={
+      ...savedPet,
+      energy:Math.max(0,(savedPet.energy??86)-(elapsedDays*8)),
+      happiness:Math.max(0,(savedPet.happiness??92)-(elapsedDays*6)),
+      hunger:Math.min(100,(savedPet.hunger??34)+(elapsedDays*10))
+    };
     if(savedLogin.lastLogin!==today){
       const consecutive=savedLogin.lastLogin&&dayDifference(savedLogin.lastLogin,today)===1;
       const streak=consecutive?savedLogin.streak+1:1;
@@ -441,6 +471,23 @@ export default function Page(){
     setEquipment(current=>({...current,[item.slot]:item.id}));
   }
 
+  function useCareItem(item){
+    setPetNeeds(current=>{
+      if(item.effect==="happiness") return {...current,happiness:Math.min(100,current.happiness+item.amount)};
+      if(item.effect==="energy") return {...current,energy:Math.min(100,current.energy+item.amount)};
+      if(item.effect==="banana") return {...current,bananas:current.bananas+item.amount};
+      return {
+        ...current,
+        happiness:Math.min(100,current.happiness+item.amount),
+        energy:Math.min(100,current.energy+item.amount)
+      };
+    });
+    setInventory(current=>current.filter(entry=>entry.id!==item.id));
+    setPetMessage(`${item.name} usado com sucesso!`);
+    setPetAnimation(item.effect==="energy"?"relax":"celebrate");
+    setTimeout(()=>setPetAnimation("idle"),1800);
+  }
+
   function unequipSlot(slot){
     setEquipment(current=>{
       const next={...current};
@@ -459,6 +506,7 @@ export default function Page(){
   const totalStats=useMemo(()=>{
     const result={};
     for(const item of equippedItems){
+      if(!item?.stats) continue;
       for(const [stat,value] of Object.entries(item.stats)){
         result[stat]=(result[stat]||0)+value;
       }
@@ -602,6 +650,13 @@ export default function Page(){
     .map(e=>({label:new Date(e.occurred_at).toLocaleDateString("pt-BR",{day:"2-digit",month:"2-digit"}),weight:Number(e.weight_kg)}))
   ,[historyData]);
 
+  const latestWeightEntry=useMemo(()=>historyData
+    .filter(entry=>entry.type==="weight"&&Number(entry.weight_kg)>0)
+    .sort((a,b)=>new Date(b.occurred_at)-new Date(a.occurred_at))[0]||null
+  ,[historyData]);
+  const latestWeight=latestWeightEntry?Number(latestWeightEntry.weight_kg):BODY_STATS.weightKg;
+  const latestWeightDate=latestWeightEntry?latestWeightEntry.occurred_at:BODY_STATS.measuredAt;
+
   const recipes=useMemo(()=>{
     const target=Math.max(220,Math.min(profile.objective==="gain"||profile.objective==="muscle"?900:700,Number(totals.remaining||0)));
     const daySeed=Number(dateKey().replaceAll("-",""))+recipeRotation*97;
@@ -614,7 +669,7 @@ export default function Page(){
     return seededShuffle(shortlist,daySeed).slice(0,6);
   },[totals.remaining,profile.objective,recipeRotation]);
 
-  const pet=useMemo(()=>{
+const pet=useMemo(()=>{
     const missions=[];
     for(let i=6;i>=0;i--){
       const d=new Date();d.setDate(d.getDate()-i);
@@ -643,17 +698,24 @@ export default function Page(){
       {name:"Lenda da Selva",icon:"👑",unlocked:level>=6}
     ];
     const bossMaxHp=700;
-    const rawDamage=missions.reduce((sum,mission)=>sum+mission.quests.filter(quest=>quest.done).reduce((value,quest)=>value+quest.xp,0),0);
+    const missionDamage=missions.reduce((sum,mission)=>sum+mission.quests.filter(quest=>quest.done).reduce((value,quest)=>value+quest.xp,0),0);
+    const trainingDamage=(petActions.trainings||0)*8;
+    const baseDamage=missionDamage+trainingDamage;
+    const equipmentPower=(totalStats.strength||0)+(totalStats.determination||0)+((totalStats.discipline||0)*.5)+((totalStats.energy||0)*.35);
+    const equipmentMultiplier=1+(equipmentPower/100);
+    const moodAverage=((petNeeds.energy||0)+(petNeeds.happiness||0))/2;
+    const moodMultiplier=.55+(moodAverage/100)*.70;
+    const rawDamage=Math.round(baseDamage*equipmentMultiplier*moodMultiplier);
     const regeneration=missions.reduce((sum,mission)=>sum+Math.abs(mission.penalties.reduce((value,penalty)=>value+penalty.xp,0)),0);
     const damage=Math.max(0,rawDamage-regeneration);
     const bossHp=Math.max(0,bossMaxHp-damage);
     const bossPercent=Math.round((bossHp/bossMaxHp)*100);
     const boss=bossHp===0
-      ?{name:"Crocodilo da Preguiça",emoji:"🐊",status:"Derrotado",message:"O golpe final foi aplicado. O tesouro lendário foi liberado.",hp:0,maxHp:bossMaxHp,damage,regeneration,percent:0}
-      :{name:"Crocodilo da Preguiça",emoji:"🐊",status:"Em combate",message:"Cada objetivo concluído causa dano. Práticas ruins restauram parte da vida do chefe.",hp:bossHp,maxHp:bossMaxHp,damage,regeneration,percent:bossPercent};
+      ?{name:"Crocodilo da Preguiça",emoji:"🐊",status:"Derrotado",message:"O golpe final foi aplicado. O tesouro lendário foi liberado.",hp:0,maxHp:bossMaxHp,damage,regeneration,percent:0,baseDamage,equipmentMultiplier,moodMultiplier,equipmentPower,moodAverage}
+      :{name:"Crocodilo da Preguiça",emoji:"🐊",status:"Em combate",message:"Missões, humor, energia, treinos e equipamentos determinam o dano final.",hp:bossHp,maxHp:bossMaxHp,damage,regeneration,percent:bossPercent,baseDamage,equipmentMultiplier,moodMultiplier,equipmentPower,moodAverage};
     const recentAttacks=missions.flatMap(mission=>mission.quests.filter(quest=>quest.done).map(quest=>({id:`${mission.key}-${quest.id}`,name:quest.name,damage:quest.xp,key:mission.key}))).slice(-5).reverse();
     return {missions,totalXp,average,level,stage,progress,locations,achievements,boss,recentAttacks};
-  },[historyData]);
+  },[historyData,goals.calorieGoal,totalStats,petNeeds.energy,petNeeds.happiness,petActions.trainings]);
 
   useEffect(()=>{
     if(!historyData.length) return;
@@ -775,7 +837,7 @@ export default function Page(){
       </article>
 
       <section className="bodyCompositionGrid">
-        <article className="panel bodyHeroCard"><span>Leitura mais recente</span><strong>{BODY_STATS.weightKg} kg</strong><p>{new Date(BODY_STATS.measuredAt).toLocaleString("pt-BR")}</p><div className="bodyScore"><b>{BODY_STATS.score}</b><small>pontuação média</small></div></article>
+        <article className="panel bodyHeroCard"><span>Leitura mais recente</span><strong>{latestWeight.toFixed(1)} kg</strong><p>{new Date(latestWeightDate).toLocaleString("pt-BR")}</p><div className="bodyScore"><b>{BODY_STATS.score}</b><small>pontuação média</small></div></article>
         <article className="panel bodyMetric warning"><span>Gordura corporal</span><strong>{BODY_STATS.bodyFatPercent}%</strong><small>{BODY_STATS.fatMassKg} kg de massa gorda</small></article>
         <article className="panel bodyMetric warning"><span>Gordura visceral</span><strong>{BODY_STATS.visceralFat}</strong><small>Nível de alerta</small></article>
         <article className="panel bodyMetric"><span>Massa magra</span><strong>{BODY_STATS.leanMassKg} kg</strong><small>Peso sem gordura</small></article>
@@ -789,8 +851,8 @@ export default function Page(){
         <article className="panel bodyMetric warning"><span>Índice de gordura</span><strong>{BODY_STATS.bodyFatIndex}</strong><small>Classificação alta</small></article>
       </section>
 
-      <article className="panel chartPanel"><h2>Calorias — últimos 7 dias</h2><ResponsiveContainer width="100%" height={300}><BarChart data={last7}><CartesianGrid strokeDasharray="3 3" stroke="#ffffff12"/><XAxis dataKey="label" stroke="#9fb2c9"/><YAxis stroke="#9fb2c9"/><Tooltip/><ReferenceLine y={goals.calorieGoal} stroke="#ffc857" strokeDasharray="6 6"/><Bar dataKey="calories" fill="#62a6ff" radius={[8,8,0,0]}/></BarChart></ResponsiveContainer></article>
-      <article className="panel chartPanel"><h2>Peso</h2>{weightData.length?<ResponsiveContainer width="100%" height={280}><LineChart data={weightData}><CartesianGrid strokeDasharray="3 3" stroke="#ffffff12"/><XAxis dataKey="label" stroke="#9fb2c9"/><YAxis stroke="#9fb2c9" domain={["dataMin - 1","dataMax + 1"]}/><Tooltip/><Line dataKey="weight" stroke="#58e0b0" strokeWidth={4}/></LineChart></ResponsiveContainer>:<div className="empty">Sem registros de peso no banco. A leitura atual da balança é {BODY_STATS.weightKg} kg.</div>}</article>
+      <article className="panel chartPanel"><h2>Calorias — últimos 7 dias</h2><ResponsiveContainer width="100%" height={300}><BarChart data={last7}><CartesianGrid strokeDasharray="3 3" stroke="#ffffff12"/><XAxis dataKey="label" stroke="#9fb2c9"/><YAxis stroke="#9fb2c9"/><Tooltip cursor={{fill:"rgba(62,126,207,.16)"}}/><ReferenceLine y={goals.calorieGoal} stroke="#ffc857" strokeDasharray="6 6"/><Bar dataKey="calories" fill="#62a6ff" activeBar={{fill:"#3f7fce"}} radius={[8,8,0,0]}/></BarChart></ResponsiveContainer></article>
+      <article className="panel chartPanel"><h2>Peso</h2>{weightData.length?<ResponsiveContainer width="100%" height={280}><LineChart data={weightData}><CartesianGrid strokeDasharray="3 3" stroke="#ffffff12"/><XAxis dataKey="label" stroke="#9fb2c9"/><YAxis stroke="#9fb2c9" domain={["dataMin - 1","dataMax + 1"]}/><Tooltip/><Line dataKey="weight" stroke="#58e0b0" strokeWidth={4}/></LineChart></ResponsiveContainer>:<div className="empty">Sem registros de peso no banco. A leitura mais recente registrada é {latestWeight.toFixed(1)} kg.</div>}</article>
     </section>}
 
     {active==="pet"&&<section className="page pixelPetPage">
@@ -863,7 +925,13 @@ export default function Page(){
               <div className="bossHpLabels"><strong>{pet.boss.hp} / {pet.boss.maxHp} HP</strong><span>{pet.boss.percent}%</span></div>
               <div className="pixelBossHp"><span style={{width:`${pet.boss.percent}%`}}/></div>
               <p>Cumpra as missões listadas abaixo. Cada missão concluída retira HP do chefe. O chefe é reiniciado toda segunda-feira à meia-noite.</p>
-              <div className="bossReward"><span>⚔ Dano causado: {pet.boss.damage}</span><span>💚 HP recuperado: {pet.boss.regeneration}</span></div>
+              <div className="bossReward">
+                <span>⚔ Dano final: {pet.boss.damage}</span>
+                <span>🧱 Base: {pet.boss.baseDamage}</span>
+                <span>🎒 Equipamento: ×{pet.boss.equipmentMultiplier.toFixed(2)}</span>
+                <span>😊 Humor/energia: ×{pet.boss.moodMultiplier.toFixed(2)}</span>
+                <span>💚 Cura do chefe: {pet.boss.regeneration}</span>
+              </div>
             </div>
           </div>
         </article>
@@ -917,10 +985,10 @@ export default function Page(){
 
       {rpgTab==="inventory"&&<section className="pixelInventoryPage">
         <article className="pixelWindow"><div className="pixelWindowTitle"><span>🛡</span><h3>Equipamentos ativos</h3></div><div className="pixelFullEquipment">{Object.entries(SLOT_LABELS).map(([slot,label])=>{const item=inventory.find(entry=>entry.id===equipment[slot]);return <article key={slot}><small>{label}</small>{item?<><div>{item.icon}</div><strong style={{color:item.rarityColor}}>{item.name}</strong><button onClick={()=>unequipSlot(slot)}>Remover</button></>:<><LockKeyhole/><strong>Vazio</strong></>}</article>})}</div></article>
-        <article className="pixelWindow"><div className="pixelWindowTitle"><span>🎒</span><h3>Mochila</h3><small>{inventory.length} itens</small></div>{!inventory.length&&<div className="pixelEmpty"><Gem/><p>Abra baús para encontrar equipamentos.</p></div>}<div className="pixelItemGrid">{inventory.map(item=><article style={{borderColor:item.rarityColor}} key={item.id}><div>{item.icon}</div><span style={{color:item.rarityColor}}>{item.rarityName}</span><h4>{item.name}</h4><small>{Object.entries(item.stats).map(([stat,value])=>`${STAT_LABELS[stat]} +${value}`).join(" · ")}</small><button onClick={()=>equipItem(item)}>{equipment[item.slot]===item.id?"Equipado":"Equipar"}</button></article>)}</div></article>
+        <article className="pixelWindow"><div className="pixelWindowTitle"><span>🎒</span><h3>Mochila</h3><small>{inventory.length} itens</small></div>{!inventory.length&&<div className="pixelEmpty"><Gem/><p>Abra baús para encontrar equipamentos.</p></div>}<div className="pixelItemGrid">{inventory.map(item=><article className={item.kind==="care"?"careLootCard":""} style={{borderColor:item.rarityColor}} key={item.id}><div>{item.icon}</div><span style={{color:item.rarityColor}}>{item.rarityName}</span><h4>{item.name}</h4><small>{item.kind==="care"?`${item.description} +${item.amount}`:Object.entries(item.stats||{}).map(([stat,value])=>`${STAT_LABELS[stat]} +${value}`).join(" · ")}</small><button onClick={()=>item.kind==="care"?useCareItem(item):equipItem(item)}>{item.kind==="care"?"Usar":equipment[item.slot]===item.id?"Equipado":"Equipar"}</button></article>)}</div></article>
       </section>}
 
-      {lootReveal&&<div className="lootModal" onClick={()=>setLootReveal(null)}><div className="pixelLootReveal" onClick={event=>event.stopPropagation()} style={{borderColor:lootReveal.item.rarityColor}}><Sparkles/><span>ITEM ENCONTRADO</span><div>{lootReveal.item.icon}</div><h2>{lootReveal.item.name}</h2><strong style={{color:lootReveal.item.rarityColor}}>{lootReveal.item.rarityName}</strong><button onClick={()=>{equipItem(lootReveal.item);setLootReveal(null);setRpgTab("inventory")}}>Equipar agora</button><button onClick={()=>setLootReveal(null)}>Guardar</button></div></div>}
+      {lootReveal&&<div className="lootModal" onClick={()=>setLootReveal(null)}><div className="pixelLootReveal" onClick={event=>event.stopPropagation()} style={{borderColor:lootReveal.item.rarityColor}}><Sparkles/><span>ITEM ENCONTRADO</span><div>{lootReveal.item.icon}</div><h2>{lootReveal.item.name}</h2><strong style={{color:lootReveal.item.rarityColor}}>{lootReveal.item.rarityName}</strong><button onClick={()=>{lootReveal.item.kind==="care"?useCareItem(lootReveal.item):equipItem(lootReveal.item);setLootReveal(null);setRpgTab("inventory")}}>{lootReveal.item.kind==="care"?"Usar agora":"Equipar agora"}</button><button onClick={()=>setLootReveal(null)}>Guardar</button></div></div>}
     </section>}
 
     {active==="profile"&&<section className="page">
