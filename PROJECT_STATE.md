@@ -76,3 +76,10 @@ v9.1 — Conselho de Gamificação Integrado
 - Corrigido o recorte do spritesheet: cada quadro visual ocupa 64x32 px, não 32x32 px.
 - Idle usa 4 quadros completos da linha 1, mantendo o personagem ancorado no mesmo ponto.
 - Interação e treinos também passaram a usar quadros completos de 64 px para evitar alternância entre metades do personagem.
+
+
+## v10.7
+- Monkey King ampliado para 200% do tamanho visual da v10.6 em desktop.
+- Molduras brancas removidas do RPG.
+- Molduras de bambu implementadas em CSS, sem criação de imagens novas.
+- Paleta escura e contraste do NutriClock preservados.

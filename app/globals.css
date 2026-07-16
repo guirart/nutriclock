@@ -810,3 +810,111 @@ button:active{transform:translateY(1px)}
 @media(max-width:520px){.monkeyKingSprite{transform:scale(2.2)}}
 @media(prefers-reduced-motion:reduce){.monkeyKingSprite{animation:none!important}}
 
+
+/* v10.7 — Monkey King 200% maior e molduras de bambu programadas em CSS.
+   Não usa imagens novas: remove as bordas claras do UI Essentials e preserva a paleta escura. */
+.pixelPetPage{
+  --bamboo-dark:#3a2109;
+  --bamboo-shadow:#160d05;
+  --bamboo-mid:#8b5a18;
+  --bamboo-light:#d3a13b;
+  --bamboo-knot:#5b340d;
+}
+
+/* Moldura principal de bambu: três camadas, nós e brilho quente. */
+.pixelPetPage .pixelWindow,
+.pixelPetPage .pixelBossCard,
+.pixelPetPage .dailyLoginCard,
+.pixelPetPage .pixelCompanionCard,
+.pixelPetPage .pixelTabs,
+.pixelPetPage .expeditionCard,
+.pixelPetPage .dailyJourneyDock,
+.pixelPetPage .pixelPetHeader,
+.pixelPetPage .gameFocusStrip{
+  border-image:none!important;
+  border:8px solid var(--bamboo-mid)!important;
+  outline:2px solid var(--bamboo-shadow)!important;
+  outline-offset:-2px;
+  border-radius:2px!important;
+  background-color:#0d1822!important;
+  box-shadow:
+    inset 0 0 0 2px var(--bamboo-light),
+    inset 0 0 0 5px var(--bamboo-dark),
+    0 8px 0 #090603,
+    0 12px 24px #0009!important;
+}
+
+/* Faixas horizontais que lembram gomos e amarrações do bambu. */
+.pixelPetPage .pixelWindowTitle,
+.pixelPetPage .pixelBossHead,
+.pixelPetPage .dailyJourneyDock header{
+  border-image:none!important;
+  border:4px solid var(--bamboo-mid)!important;
+  border-left-width:8px!important;
+  border-right-width:8px!important;
+  background:
+    repeating-linear-gradient(90deg,
+      transparent 0 70px,
+      rgba(43,24,5,.95) 70px 74px,
+      rgba(224,174,67,.85) 74px 77px,
+      transparent 77px 148px),
+    linear-gradient(180deg,#172631,#0b151d)!important;
+  box-shadow:inset 0 2px 0 var(--bamboo-light),inset 0 -3px 0 var(--bamboo-dark)!important;
+}
+
+/* Botões e slots continuam escuros, com aro de bambu, sem qualquer branco. */
+.pixelPetPage button:not(.animatedCompanionButton):not(.worldObject),
+.pixelPetPage .pixelEquipmentSlots button,
+.pixelPetPage .pixelInventoryQuick button,
+.pixelPetPage .pixelFullEquipment article,
+.pixelPetPage .pixelItemGrid article,
+.pixelPetPage .pixelVitals>div,
+.pixelPetPage .missionMiniBar,
+.pixelPetPage .pixelBossHp,
+.pixelPetPage .dailyBossHp{
+  border-image:none!important;
+  border:4px solid var(--bamboo-mid)!important;
+  background:linear-gradient(180deg,#172a37,#0b1720)!important;
+  color:#f4f1df!important;
+  box-shadow:inset 0 0 0 1px var(--bamboo-light),inset 0 0 0 3px var(--bamboo-dark)!important;
+}
+.pixelPetPage button:not(.animatedCompanionButton):not(.worldObject):hover{
+  border-color:var(--bamboo-light)!important;
+  background:linear-gradient(180deg,#254454,#102632)!important;
+}
+
+/* Moldura externa da cena e divisões internas. */
+.pixelPetPage .pixelStage,
+.pixelPetPage .pixelCharacterInfo,
+.pixelPetPage .pixelActions,
+.pixelPetPage .petActionFeedback{
+  border-color:var(--bamboo-mid)!important;
+}
+.pixelPetPage .pixelStage{border-right-width:8px!important;border-bottom-width:8px!important}
+.pixelPetPage .dailyJourneyDock{border-right-width:8px!important;border-top-width:8px!important}
+
+/* Monkey King: exatamente 200% do tamanho da v10.6 (scale 3 -> scale 6). */
+.monkeyKingSprite{transform:scale(6)!important}
+.animatedCompanionButton{
+  width:430px!important;
+  height:390px!important;
+  bottom:10px!important;
+  overflow:visible!important;
+}
+.pixelStage{min-height:620px!important}
+
+@media(max-width:920px){
+  .monkeyKingSprite{transform:scale(5.2)!important}
+  .animatedCompanionButton{width:360px!important;height:340px!important;bottom:12px!important}
+  .pixelStage{min-height:560px!important}
+}
+@media(max-width:620px){
+  .monkeyKingSprite{transform:scale(4.4)!important}
+  .animatedCompanionButton{width:300px!important;height:290px!important;bottom:14px!important}
+  .pixelStage{min-height:490px!important}
+  .pixelPetPage .pixelWindow,.pixelPetPage .pixelBossCard,.pixelPetPage .dailyLoginCard,
+  .pixelPetPage .pixelCompanionCard,.pixelPetPage .pixelTabs,.pixelPetPage .expeditionCard,
+  .pixelPetPage .dailyJourneyDock,.pixelPetPage .pixelPetHeader,.pixelPetPage .gameFocusStrip{
+    border-width:6px!important;
+  }
+}

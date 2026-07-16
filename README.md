@@ -54,3 +54,7 @@ O estado de exploração é salvo em `localStorage` pela chave `nutriclock_exped
 
 ### Correção v10.6
 O Monkey King agora é animado em quadros completos de 64x32 px. Isso impede o efeito de piscar/deslocar de um lado para o outro causado pelo recorte anterior em células de 32 px.
+
+
+### v10.7
+A interface RPG usa molduras de bambu programadas em CSS e o Monkey King foi ampliado em 200%.
