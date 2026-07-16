@@ -97,3 +97,9 @@ v9.1 — Conselho de Gamificação Integrado
 - Suporte à integração externa por `X-API-Key` + `X-User-Id`.
 - Chaves de localStorage recebem namespace do UUID, impedindo mistura de perfil e RPG entre contas no mesmo aparelho.
 - Migração SQL e guia de implantação adicionados.
+
+## v11.1 — inicialização segura
+- A ausência de variáveis públicas do Supabase não derruba mais o aplicativo.
+- O app exibe uma tela de configuração clara com os nomes exatos das variáveis.
+- Inicialização de sessão, listener de autenticação e logout possuem tratamento de erro.
+- Foi adicionado um Error Boundary para exceções de cliente.

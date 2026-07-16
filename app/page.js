@@ -1,7 +1,7 @@
  'use client';
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { getSupabaseBrowser } from "../lib/supabaseBrowser";
+import { getSupabaseBrowser, getSupabaseBrowserConfig } from "../lib/supabaseBrowser";
 import {
   Home as HomeIcon, Utensils, History, BarChart3, User, Gamepad2,
   Flame, Dumbbell, Scale, Droplets, Coffee, Beef, Plus, Pencil,
@@ -1295,7 +1295,24 @@ const pet=useMemo(()=>{
 }
 
 
-function AuthScreen({onSession}){
+function ConfigurationScreen(){
+  return <main className="authShell">
+    <section className="authCard authConfigCard">
+      <div className="authBrand"><div className="logoMark">N</div><div><h1>NutriClock</h1><p>Configuração necessária</p></div></div>
+      <h2>Conecte o Supabase na Vercel</h2>
+      <p>O aplicativo foi carregado corretamente, mas as variáveis públicas de autenticação não estão disponíveis neste deploy.</p>
+      <div className="configSteps">
+        <code>NEXT_PUBLIC_SUPABASE_URL</code>
+        <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code>
+      </div>
+      <p className="authMessage">Adicione as duas variáveis em Vercel → Project Settings → Environment Variables e faça um novo deploy.</p>
+      <button className="primary" onClick={()=>window.location.reload()}>Tentar novamente</button>
+      <small>A chave usada aqui é a chave pública <strong>anon</strong>. Nunca coloque a service role em uma variável NEXT_PUBLIC.</small>
+    </section>
+  </main>;
+}
+
+function AuthScreen({onSession,supabase}){
   const [mode,setMode]=useState("login");
   const [email,setEmail]=useState("");
   const [password,setPassword]=useState("");
@@ -1307,7 +1324,7 @@ function AuthScreen({onSession}){
     event.preventDefault();
     setLoading(true);setMessage("");
     try{
-      const supabase=getSupabaseBrowser();
+      if(!supabase) throw new Error("Supabase não configurado neste deploy.");
       if(mode==="signup"){
         const {data,error}=await supabase.auth.signUp({email,password,options:{data:{name}}});
         if(error) throw error;
@@ -1316,23 +1333,24 @@ function AuthScreen({onSession}){
       }else{
         const {data,error}=await supabase.auth.signInWithPassword({email,password});
         if(error) throw error;
+        if(!data.session) throw new Error("A sessão não foi criada. Verifique o e-mail e a senha.");
         onSession(data.session);
       }
-    }catch(error){setMessage(error.message||"Não foi possível autenticar.");}
+    }catch(error){setMessage(error?.message||"Não foi possível autenticar.");}
     finally{setLoading(false);}
   }
 
   return <main className="authShell">
     <section className="authCard">
       <div className="authBrand"><div className="logoMark">N</div><div><h1>NutriClock</h1><p>Seu progresso, seus dados, sua jornada.</p></div></div>
-      <div className="authTabs"><button className={mode==="login"?"active":""} onClick={()=>setMode("login")}>Entrar</button><button className={mode==="signup"?"active":""} onClick={()=>setMode("signup")}>Criar conta</button></div>
+      <div className="authTabs"><button type="button" className={mode==="login"?"active":""} onClick={()=>{setMode("login");setMessage("");}}>Entrar</button><button type="button" className={mode==="signup"?"active":""} onClick={()=>{setMode("signup");setMessage("");}}>Criar conta</button></div>
       <form onSubmit={submit} className="authForm">
         {mode==="signup"&&<label>Nome<input value={name} onChange={e=>setName(e.target.value)} required/></label>}
         <label><Mail size={16}/> E-mail<input type="email" value={email} onChange={e=>setEmail(e.target.value)} required autoComplete="email"/></label>
         <label><KeyRound size={16}/> Senha<input type="password" minLength="6" value={password} onChange={e=>setPassword(e.target.value)} required autoComplete={mode==="login"?"current-password":"new-password"}/></label>
         <button className="primary" disabled={loading}>{loading?"Aguarde...":mode==="login"?"Entrar no NutriClock":"Criar minha conta"}</button>
       </form>
-      {message&&<p className="authMessage">{message}</p>}
+      {message&&<p className="authMessage" role="alert">{message}</p>}
       <small>Cada conta possui registros nutricionais, perfil e progresso de RPG separados.</small>
     </section>
   </main>;
@@ -1341,15 +1359,48 @@ function AuthScreen({onSession}){
 export default function Page(){
   const [session,setSession]=useState(null);
   const [loading,setLoading]=useState(true);
+  const [startupError,setStartupError]=useState("");
+  const config=getSupabaseBrowserConfig();
+  const supabase=useMemo(()=>getSupabaseBrowser(),[]);
+
   useEffect(()=>{
+    if(!supabase){setLoading(false);return;}
     let mounted=true;
-    const supabase=getSupabaseBrowser();
-    supabase.auth.getSession().then(({data})=>{if(mounted){setSession(data.session);setLoading(false);}});
-    const {data:{subscription}}=supabase.auth.onAuthStateChange((_event,nextSession)=>{if(mounted){setSession(nextSession);setLoading(false);}});
-    return()=>{mounted=false;subscription.unsubscribe();};
-  },[]);
-  async function signOut(){await getSupabaseBrowser().auth.signOut();setSession(null);}
+    let subscription;
+
+    async function initialize(){
+      try{
+        const {data,error}=await supabase.auth.getSession();
+        if(error) throw error;
+        if(mounted) setSession(data?.session||null);
+
+        const result=supabase.auth.onAuthStateChange((_event,nextSession)=>{
+          if(mounted) setSession(nextSession||null);
+        });
+        subscription=result?.data?.subscription;
+      }catch(error){
+        console.error("Falha ao iniciar autenticação:",error);
+        if(mounted){
+          setSession(null);
+          setStartupError(error?.message||"Não foi possível iniciar a autenticação.");
+        }
+      }finally{
+        if(mounted) setLoading(false);
+      }
+    }
+
+    initialize();
+    return()=>{mounted=false;subscription?.unsubscribe?.();};
+  },[supabase]);
+
+  async function signOut(){
+    try{await supabase?.auth.signOut();}
+    catch(error){console.error("Falha ao sair:",error);}
+    finally{setSession(null);}
+  }
+
+  if(!config||!supabase) return <ConfigurationScreen/>;
   if(loading) return <main className="authShell"><div className="authLoading">Carregando NutriClock...</div></main>;
-  if(!session) return <AuthScreen onSession={setSession}/>;
+  if(!session) return <><AuthScreen onSession={setSession} supabase={supabase}/>{startupError&&<div className="startupToast" role="alert">{startupError}</div>}</>;
   return <NutriClockApp key={session.user.id} session={session} onSignOut={signOut}/>;
 }
