@@ -25,3 +25,22 @@ v9.1 — Conselho de Gamificação Integrado
 - Criar sistema de expedição com duração real e múltiplas regiões.
 - Persistir o estado do RPG no Supabase para uso entre dispositivos.
 - Adicionar feedback sonoro opcional e configurações de acessibilidade.
+
+
+## v9.2 — Jornadas e chefes diários
+- Tela do companheiro reorganizada para remover o grande espaço vazio.
+- Jornada diária integrada diretamente à cena principal.
+- Sete chefes rotativos: Cogumelo Rei, Rei Slime, Golem de Cristal, Escorpião do Sol, Coruja da Tempestade, Javali de Lava e Fantasma Lunar.
+- Sete ambientações próprias em pixel art vetorial.
+- Vida e dano do chefe diário calculados por missões, interações, alimentação, treino e equipamentos.
+- Recompensa diária persistente: bananas, felicidade e baú conforme a dificuldade.
+- Chefe semanal preservado como objetivo de longo prazo.
+- Build de produção validado com sucesso em Next.js 15.5.9.
+
+
+## v9.4 — Mundo animado
+- Macaco estático substituído por sprite público animado com fallback local.
+- Cenário principal transformado em pequeno mundo interativo.
+- Árvore, fogueira e baú agora são objetos clicáveis.
+- Ambiente acompanha a jornada/chefe diário.
+- Créditos e licença documentados em `ASSET_CREDITS.md`.
