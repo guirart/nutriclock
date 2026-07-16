@@ -311,6 +311,51 @@ function Progress({value,max}){
   const pct=Math.max(0,Math.min(100,(Number(value||0)/max)*100));
   return <div className="progress"><span style={{width:`${pct}%`}}/></div>;
 }
+
+function normalizeNutritionEntry(entry){
+  if(!entry || typeof entry!=="object") return entry;
+  return {
+    ...entry,
+    description:entry.description??entry.name??"",
+    calories:Number(entry.calories??0),
+    protein_g:Number(entry.protein_g??entry.protein??0),
+    carbs_g:Number(entry.carbs_g??entry.carbohydrates??0),
+    fat_g:Number(entry.fat_g??entry.fats??0),
+    fiber_g:Number(entry.fiber_g??entry.fiber??0),
+    water_ml:Number(entry.water_ml??0),
+    caffeine_mg:Number(entry.caffeine_mg??0),
+    weight_kg:entry.weight_kg==null?null:Number(entry.weight_kg),
+    occurred_at:entry.occurred_at??entry.occurredAt??entry.created_at??new Date().toISOString()
+  };
+}
+
+function buildDailySummary(allEntries,selectedDate){
+  const entries=(allEntries||[])
+    .map(normalizeNutritionEntry)
+    .filter(entry=>dateKey(new Date(entry.occurred_at))===selectedDate)
+    .sort((a,b)=>new Date(a.occurred_at)-new Date(b.occurred_at));
+  const totals=entries.reduce((acc,entry)=>{
+    if(entry.type==="meal"){
+      acc.consumed+=entry.calories;
+      acc.protein_g+=entry.protein_g;
+      acc.carbs_g+=entry.carbs_g;
+      acc.fat_g+=entry.fat_g;
+      acc.fiber_g+=entry.fiber_g;
+    }else if(entry.type==="exercise"){
+      acc.exercise+=Math.abs(entry.calories);
+    }else if(entry.type==="water"){
+      acc.water_ml+=entry.water_ml;
+    }else if(entry.type==="caffeine"){
+      acc.caffeine_mg+=entry.caffeine_mg;
+    }else if(entry.type==="weight"&&entry.weight_kg!=null){
+      acc.weight_kg=entry.weight_kg;
+    }
+    return acc;
+  },{consumed:0,exercise:0,protein_g:0,carbs_g:0,fat_g:0,fiber_g:0,water_ml:0,caffeine_mg:0,weight_kg:null});
+  totals.net=totals.consumed-totals.exercise;
+  return {success:true,date:selectedDate,totals,entries};
+}
+
 function entryValue(entry){
   if(entry.type==="exercise") return `-${Math.abs(Math.round(Number(entry.calories||0)))} kcal`;
   if(entry.type==="water") return `${Math.round(Number(entry.water_ml||0))} ml`;
@@ -609,14 +654,15 @@ function NutriClockApp({session,onSignOut}){
 
   async function load(){
     try{
-      const [daily,all]=await Promise.all([
-        api(`/api/summary?date=${selectedDate}`),
-        api("/api/entries?limit=500")
-      ]);
-      setSummary(daily);
-      setHistoryData(all.entries||[]);
+      // A lista completa é a fonte única da verdade. O resumo diário é
+      // calculado no cliente para evitar divergências de schema/fuso horário.
+      const all=await api("/api/entries?limit=500");
+      const normalized=(all.entries||[]).map(normalizeNutritionEntry);
+      setHistoryData(normalized);
+      setSummary(buildDailySummary(normalized,selectedDate));
     }catch(error){
-      console.error(error);
+      console.error("Falha ao carregar registros:",error);
+      setSummary(buildDailySummary([],selectedDate));
     }
   }
 

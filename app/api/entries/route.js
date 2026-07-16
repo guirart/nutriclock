@@ -35,11 +35,13 @@ export async function GET(request) {
 
     if (date) {
       const start = new Date(`${date}T00:00:00-03:00`).toISOString();
-      const end = new Date(`${date}T23:59:59.999-03:00`).toISOString();
+      const endDate = new Date(`${date}T00:00:00-03:00`);
+      endDate.setUTCDate(endDate.getUTCDate() + 1);
+      const end = endDate.toISOString();
 
       query = query
         .gte("occurred_at", start)
-        .lte("occurred_at", end);
+        .lt("occurred_at", end);
     }
 
     const { data, error } = await query;

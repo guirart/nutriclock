@@ -23,14 +23,16 @@ export async function GET(request) {
     const date = searchParams.get("date") || todayBrazil();
 
     const start = new Date(`${date}T00:00:00-03:00`).toISOString();
-    const end = new Date(`${date}T23:59:59.999-03:00`).toISOString();
+    const endDate = new Date(`${date}T00:00:00-03:00`);
+    endDate.setUTCDate(endDate.getUTCDate() + 1);
+    const end = endDate.toISOString();
 
     const { data, error } = await getSupabaseAdmin()
       .from("nutrition_entries")
       .select("*")
       .eq("user_id", user.id)
       .gte("occurred_at", start)
-      .lte("occurred_at", end)
+      .lt("occurred_at", end)
       .order("occurred_at", { ascending: true });
 
     if (error) throw error;

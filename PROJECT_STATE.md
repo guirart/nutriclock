@@ -119,3 +119,10 @@ v9.1 — Conselho de Gamificação Integrado
 - Permanece necessária apenas a variável secreta `OPENAI_API_KEY`.
 - Build de produção validado no Next.js 15.5.9.
 
+
+## v12.3 — Correção de leitura do histórico
+- O frontend passou a usar `/api/entries` como fonte única dos registros.
+- Entradas são normalizadas para o schema real do Supabase (`description`, `protein_g`, `carbs_g`, `fat_g`, `occurred_at`).
+- O resumo diário é calculado localmente em `America/Sao_Paulo`, evitando divergência de fuso entre API e calendário.
+- Os filtros de data das APIs agora usam intervalo com início inclusivo e próximo dia exclusivo.
+- Build de produção validado no Next.js 15.5.9.
