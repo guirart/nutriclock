@@ -1,3 +1,10 @@
+## v9.9 — Correção de inventário e layout
+
+- Corrige caminhos de assets exibidos como texto.
+- Normaliza caminhos antigos salvos no localStorage.
+- Impede colapso das colunas de missões, equipamentos e inventário.
+- Adiciona fallback visual para assets ausentes.
+
 # NutriClock v9 — Conselho integrado
 
 Decisões aplicadas por quatro perspectivas:
