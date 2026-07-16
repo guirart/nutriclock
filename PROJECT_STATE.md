@@ -89,3 +89,11 @@ v9.1 — Conselho de Gamificação Integrado
 - Adicionada recuperação única de quatro equipamentos básicos para instalações afetadas pelo bug.
 - Layout do companheiro reorganizado para eliminar espaço vazio: cena ocupa duas linhas, perfil e ações ficam empilhados à direita.
 - Grade de equipamentos e mochila compactada para manter proporções próximas da referência visual.
+
+## v11.0 — Multiusuário
+
+- Supabase Auth com cadastro, login, sessão persistente e logout.
+- APIs de registros e resumo validam JWT e usam o UUID da conta.
+- Suporte à integração externa por `X-API-Key` + `X-User-Id`.
+- Chaves de localStorage recebem namespace do UUID, impedindo mistura de perfil e RPG entre contas no mesmo aparelho.
+- Migração SQL e guia de implantação adicionados.

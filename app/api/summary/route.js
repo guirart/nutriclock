@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "../../../lib/supabaseAdmin";
+import { resolveRequestUser } from "../../../lib/requestUser";
 
 export const dynamic = "force-dynamic";
 
-const FIXED_USER_ID = "rafael";
 const CALORIE_GOAL = 1850;
 
 function todayBrazil() {
@@ -18,6 +18,7 @@ function todayBrazil() {
 export async function GET(request) {
 
   try {
+    const user = await resolveRequestUser(request);
     const { searchParams } = new URL(request.url);
     const date = searchParams.get("date") || todayBrazil();
 
@@ -27,7 +28,7 @@ export async function GET(request) {
     const { data, error } = await getSupabaseAdmin()
       .from("nutrition_entries")
       .select("*")
-      .eq("user_id", FIXED_USER_ID)
+      .eq("user_id", user.id)
       .gte("occurred_at", start)
       .lte("occurred_at", end)
       .order("occurred_at", { ascending: true });
@@ -83,7 +84,7 @@ export async function GET(request) {
 
     return NextResponse.json({
       success: true,
-      user_id: FIXED_USER_ID,
+      user_id: user.id,
       date,
       totals,
       entries

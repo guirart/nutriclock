@@ -1,10 +1,11 @@
  'use client';
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { getSupabaseBrowser } from "../lib/supabaseBrowser";
 import {
   Home as HomeIcon, Utensils, History, BarChart3, User, Gamepad2,
   Flame, Dumbbell, Scale, Droplets, Coffee, Beef, Plus, Pencil,
-  Trash2, ChevronLeft, ChevronRight, CalendarDays, Sword, Shield, Crown, Trophy, LockKeyhole, Sparkles, PackageOpen, Backpack, Gem, Coins, Shirt, Footprints, CircleDot
+  Trash2, ChevronLeft, ChevronRight, CalendarDays, Sword, Shield, Crown, Trophy, LockKeyhole, Sparkles, PackageOpen, Backpack, Gem, Coins, Shirt, Footprints, CircleDot, LogOut, Mail, KeyRound
 } from "lucide-react";
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip,
@@ -366,7 +367,9 @@ function weekIndex(date=new Date()){
   return Math.floor((day+3)/7);
 }
 
-export default function Page(){
+function NutriClockApp({session,onSignOut}){
+  const userId=session.user.id;
+  const storageKey=(key)=>`${key}:${userId}`;
   const [active,setActive]=useState("home");
   const [selectedDate,setSelectedDate]=useState(dateKey());
   const [month,setMonth]=useState(new Date());
@@ -403,9 +406,9 @@ export default function Page(){
   const [storageHydrated,setStorageHydrated]=useState(false);
 
   useEffect(()=>{
-    setChests(safeRead(CHEST_KEY,[]));
-    const storedInventory=safeRead(INVENTORY_KEY,[]);
-    const recoveryDone=typeof window!=="undefined"&&localStorage.getItem("nutriclock_inventory_recovery_v108")==="1";
+    setChests(safeRead(storageKey(CHEST_KEY),[]));
+    const storedInventory=safeRead(storageKey(INVENTORY_KEY),[]);
+    const recoveryDone=typeof window!=="undefined"&&localStorage.getItem(storageKey("nutriclock_inventory_recovery_v108"))==="1";
     const inventorySource=storedInventory.length?storedInventory:(!recoveryDone?recoveredStarterInventory():[]);
     const normalizedInventory=inventorySource.map((item,index)=>{
       const normalizedIcon=normalizeAssetSource(item?.icon);
@@ -413,22 +416,23 @@ export default function Page(){
     });
     setInventory(normalizedInventory);
     if(typeof window!=="undefined"&&!storedInventory.length&&!recoveryDone){
-      localStorage.setItem("nutriclock_inventory_recovery_v108","1");
-      localStorage.setItem(INVENTORY_KEY,JSON.stringify(normalizedInventory));
+      localStorage.setItem(storageKey("nutriclock_inventory_recovery_v108"),"1");
+      localStorage.setItem(storageKey(INVENTORY_KEY),JSON.stringify(normalizedInventory));
     }
-    setEquipment(safeRead(EQUIPMENT_KEY,{}));
-    setClaims(safeRead(CLAIMS_KEY,{}));
-    const savedProfile=safeRead(PROFILE_KEY,DEFAULT_PROFILE);
+    setEquipment(safeRead(storageKey(EQUIPMENT_KEY),{}));
+    setClaims(safeRead(storageKey(CLAIMS_KEY),{}));
+    const accountDefault={...DEFAULT_PROFILE,name:session.user.user_metadata?.name||session.user.email?.split("@")[0]||"Usuário"};
+    const savedProfile=safeRead(storageKey(PROFILE_KEY),accountDefault);
     setProfile(savedProfile);
     setProfileDraft(savedProfile);
-    const savedPet=safeRead(PET_STATE_KEY,{energy:86,happiness:92,hunger:34,bananas:12});
-    const savedLogin=safeRead(DAILY_LOGIN_KEY,{lastLogin:null,streak:0,totalLogins:0});
-    const savedActions=safeRead(PET_ACTIONS_KEY,{date:dateKey(),interactions:0,feeds:0,trainings:0});
-    const savedPetName=typeof window!=="undefined"?(localStorage.getItem(PET_NAME_KEY)||"MicoClock"):"MicoClock";
-    const savedExpedition=safeRead(EXPEDITION_KEY,{date:null,claimed:false,event:null});
-    const savedDailyBoss=safeRead(DAILY_BOSS_KEY,{date:null,rewardedCount:0});
-    const savedGems=Number(typeof window!=="undefined"?localStorage.getItem(GEM_KEY):0)||0;
-    const savedNeedsTick=Number(typeof window!=="undefined"?localStorage.getItem(PET_NEEDS_TICK_KEY):Date.now())||Date.now();
+    const savedPet=safeRead(storageKey(PET_STATE_KEY),{energy:86,happiness:92,hunger:34,bananas:12});
+    const savedLogin=safeRead(storageKey(DAILY_LOGIN_KEY),{lastLogin:null,streak:0,totalLogins:0});
+    const savedActions=safeRead(storageKey(PET_ACTIONS_KEY),{date:dateKey(),interactions:0,feeds:0,trainings:0});
+    const savedPetName=typeof window!=="undefined"?(localStorage.getItem(storageKey(PET_NAME_KEY))||"MicoClock"):"MicoClock";
+    const savedExpedition=safeRead(storageKey(EXPEDITION_KEY),{date:null,claimed:false,event:null});
+    const savedDailyBoss=safeRead(storageKey(DAILY_BOSS_KEY),{date:null,rewardedCount:0});
+    const savedGems=Number(typeof window!=="undefined"?localStorage.getItem(storageKey(GEM_KEY)):0)||0;
+    const savedNeedsTick=Number(typeof window!=="undefined"?localStorage.getItem(storageKey(PET_NEEDS_TICK_KEY)):Date.now())||Date.now();
     setGems(savedGems);
     setPetName(savedPetName);
     setPetNameDraft(savedPetName);
@@ -453,7 +457,7 @@ export default function Page(){
     }
     setDailyLogin(nextLogin);
     setPetNeeds(nextPet);
-    if(typeof window!=="undefined"&&!localStorage.getItem(PET_NEEDS_TICK_KEY)) localStorage.setItem(PET_NEEDS_TICK_KEY,String(savedNeedsTick));
+    if(typeof window!=="undefined"&&!localStorage.getItem(storageKey(PET_NEEDS_TICK_KEY))) localStorage.setItem(storageKey(PET_NEEDS_TICK_KEY),String(savedNeedsTick));
     setPetActions(savedActions.date===today?savedActions:{date:today,interactions:0,feeds:0,trainings:0});
     const expeditionEvents=[
       {id:"golden-banana",icon:"🍌",title:"Bananeira Dourada",text:"Seu companheiro encontrou uma bananeira rara durante a exploração.",reward:"3 bananas",bananas:3,xp:0},
@@ -470,25 +474,25 @@ export default function Page(){
     const retry=setTimeout(load,1800);
     const timer=setInterval(load,15000);
     return()=>{clearTimeout(retry);clearInterval(timer)};
-  },[selectedDate]);
+  },[selectedDate,userId]);
 
-  useEffect(()=>{if(storageHydrated&&typeof window!=="undefined") localStorage.setItem(CHEST_KEY,JSON.stringify(chests));},[chests,storageHydrated]);
-  useEffect(()=>{if(storageHydrated&&typeof window!=="undefined") localStorage.setItem(INVENTORY_KEY,JSON.stringify(inventory));},[inventory,storageHydrated]);
-  useEffect(()=>{if(storageHydrated&&typeof window!=="undefined") localStorage.setItem(EQUIPMENT_KEY,JSON.stringify(equipment));},[equipment,storageHydrated]);
-  useEffect(()=>{if(storageHydrated&&typeof window!=="undefined") localStorage.setItem(CLAIMS_KEY,JSON.stringify(claims));},[claims,storageHydrated]);
-  useEffect(()=>{if(typeof window!=="undefined") localStorage.setItem(PROFILE_KEY,JSON.stringify(profile));},[profile]);
-  useEffect(()=>{if(typeof window!=="undefined") localStorage.setItem(PET_STATE_KEY,JSON.stringify(petNeeds));},[petNeeds]);
-  useEffect(()=>{if(typeof window!=="undefined") localStorage.setItem(DAILY_LOGIN_KEY,JSON.stringify(dailyLogin));},[dailyLogin]);
-  useEffect(()=>{if(typeof window!=="undefined") localStorage.setItem(PET_ACTIONS_KEY,JSON.stringify(petActions));},[petActions]);
-  useEffect(()=>{if(typeof window!=="undefined") localStorage.setItem(PET_NAME_KEY,petName);},[petName]);
-  useEffect(()=>{if(typeof window!=="undefined") localStorage.setItem(EXPEDITION_KEY,JSON.stringify(expedition));},[expedition]);
-  useEffect(()=>{if(typeof window!=="undefined") localStorage.setItem(DAILY_BOSS_KEY,JSON.stringify(dailyBossState));},[dailyBossState]);
-  useEffect(()=>{if(typeof window!=="undefined") localStorage.setItem(GEM_KEY,String(gems));},[gems]);
+  useEffect(()=>{if(storageHydrated&&typeof window!=="undefined") localStorage.setItem(storageKey(CHEST_KEY),JSON.stringify(chests));},[chests,storageHydrated]);
+  useEffect(()=>{if(storageHydrated&&typeof window!=="undefined") localStorage.setItem(storageKey(INVENTORY_KEY),JSON.stringify(inventory));},[inventory,storageHydrated]);
+  useEffect(()=>{if(storageHydrated&&typeof window!=="undefined") localStorage.setItem(storageKey(EQUIPMENT_KEY),JSON.stringify(equipment));},[equipment,storageHydrated]);
+  useEffect(()=>{if(storageHydrated&&typeof window!=="undefined") localStorage.setItem(storageKey(CLAIMS_KEY),JSON.stringify(claims));},[claims,storageHydrated]);
+  useEffect(()=>{if(typeof window!=="undefined") localStorage.setItem(storageKey(PROFILE_KEY),JSON.stringify(profile));},[profile]);
+  useEffect(()=>{if(typeof window!=="undefined") localStorage.setItem(storageKey(PET_STATE_KEY),JSON.stringify(petNeeds));},[petNeeds]);
+  useEffect(()=>{if(typeof window!=="undefined") localStorage.setItem(storageKey(DAILY_LOGIN_KEY),JSON.stringify(dailyLogin));},[dailyLogin]);
+  useEffect(()=>{if(typeof window!=="undefined") localStorage.setItem(storageKey(PET_ACTIONS_KEY),JSON.stringify(petActions));},[petActions]);
+  useEffect(()=>{if(typeof window!=="undefined") localStorage.setItem(storageKey(PET_NAME_KEY),petName);},[petName]);
+  useEffect(()=>{if(typeof window!=="undefined") localStorage.setItem(storageKey(EXPEDITION_KEY),JSON.stringify(expedition));},[expedition]);
+  useEffect(()=>{if(typeof window!=="undefined") localStorage.setItem(storageKey(DAILY_BOSS_KEY),JSON.stringify(dailyBossState));},[dailyBossState]);
+  useEffect(()=>{if(typeof window!=="undefined") localStorage.setItem(storageKey(GEM_KEY),String(gems));},[gems]);
   useEffect(()=>{
     if(typeof window==="undefined") return;
     const applyNeedsDecay=()=>{
       const now=Date.now();
-      const last=Number(localStorage.getItem(PET_NEEDS_TICK_KEY))||now;
+      const last=Number(localStorage.getItem(storageKey(PET_NEEDS_TICK_KEY)))||now;
       const elapsedMinutes=Math.floor((now-last)/60000);
       if(elapsedMinutes<1) return;
       const energyLoss=Math.floor(elapsedMinutes/90);
@@ -508,9 +512,9 @@ export default function Page(){
         hungerGain?hungerGain*75:0,
         1
       );
-      localStorage.setItem(PET_NEEDS_TICK_KEY,String(last+(consumedMinutes*60000)));
+      localStorage.setItem(storageKey(PET_NEEDS_TICK_KEY),String(last+(consumedMinutes*60000)));
     };
-    if(!localStorage.getItem(PET_NEEDS_TICK_KEY)) localStorage.setItem(PET_NEEDS_TICK_KEY,String(Date.now()));
+    if(!localStorage.getItem(storageKey(PET_NEEDS_TICK_KEY))) localStorage.setItem(storageKey(PET_NEEDS_TICK_KEY),String(Date.now()));
     applyNeedsDecay();
     const timer=window.setInterval(applyNeedsDecay,60000);
     const onVisibility=()=>{if(document.visibilityState==="visible") applyNeedsDecay();};
@@ -527,7 +531,7 @@ export default function Page(){
 
 
   async function api(path,options={}){
-    const response=await fetch(path,{...options,headers:{...(options.headers||{})},cache:"no-store"});
+    const response=await fetch(path,{...options,headers:{Authorization:`Bearer ${session.access_token}`,...(options.headers||{})},cache:"no-store"});
     const data=await response.json();
     if(!response.ok) throw new Error(data.error||"Falha na API");
     return data;
@@ -971,7 +975,7 @@ const pet=useMemo(()=>{
   return <main className="shell">
     <header className="topbar">
       <div className="brand"><div className="logoMark">N</div><div><h1>NutriClock</h1><p>Acompanhamento nutricional e hábitos</p></div></div>
-      <div className="mode"><span className="modeDot"/>UI Essentials · v9.7</div>
+      <div className="topbarAccount"><span className="accountEmail">{session.user.email}</span><button className="logoutButton" onClick={onSignOut}><LogOut size={16}/> Sair</button></div>
     </header>
 {active==="home"&&<>
       <div className="sectionIntro"><div><span>Resumo diário</span><h2>Visão geral</h2></div><p>Acompanhe o que importa hoje.</p></div><section className="stats">
@@ -1288,4 +1292,64 @@ const pet=useMemo(()=>{
       <button className={active==="profile"?"active":""} onClick={()=>setActive("profile")}><User/><span>Perfil</span></button>
     </nav>
   </main>
+}
+
+
+function AuthScreen({onSession}){
+  const [mode,setMode]=useState("login");
+  const [email,setEmail]=useState("");
+  const [password,setPassword]=useState("");
+  const [name,setName]=useState("");
+  const [loading,setLoading]=useState(false);
+  const [message,setMessage]=useState("");
+
+  async function submit(event){
+    event.preventDefault();
+    setLoading(true);setMessage("");
+    try{
+      const supabase=getSupabaseBrowser();
+      if(mode==="signup"){
+        const {data,error}=await supabase.auth.signUp({email,password,options:{data:{name}}});
+        if(error) throw error;
+        if(data.session) onSession(data.session);
+        else setMessage("Conta criada. Confira seu e-mail para confirmar o cadastro.");
+      }else{
+        const {data,error}=await supabase.auth.signInWithPassword({email,password});
+        if(error) throw error;
+        onSession(data.session);
+      }
+    }catch(error){setMessage(error.message||"Não foi possível autenticar.");}
+    finally{setLoading(false);}
+  }
+
+  return <main className="authShell">
+    <section className="authCard">
+      <div className="authBrand"><div className="logoMark">N</div><div><h1>NutriClock</h1><p>Seu progresso, seus dados, sua jornada.</p></div></div>
+      <div className="authTabs"><button className={mode==="login"?"active":""} onClick={()=>setMode("login")}>Entrar</button><button className={mode==="signup"?"active":""} onClick={()=>setMode("signup")}>Criar conta</button></div>
+      <form onSubmit={submit} className="authForm">
+        {mode==="signup"&&<label>Nome<input value={name} onChange={e=>setName(e.target.value)} required/></label>}
+        <label><Mail size={16}/> E-mail<input type="email" value={email} onChange={e=>setEmail(e.target.value)} required autoComplete="email"/></label>
+        <label><KeyRound size={16}/> Senha<input type="password" minLength="6" value={password} onChange={e=>setPassword(e.target.value)} required autoComplete={mode==="login"?"current-password":"new-password"}/></label>
+        <button className="primary" disabled={loading}>{loading?"Aguarde...":mode==="login"?"Entrar no NutriClock":"Criar minha conta"}</button>
+      </form>
+      {message&&<p className="authMessage">{message}</p>}
+      <small>Cada conta possui registros nutricionais, perfil e progresso de RPG separados.</small>
+    </section>
+  </main>;
+}
+
+export default function Page(){
+  const [session,setSession]=useState(null);
+  const [loading,setLoading]=useState(true);
+  useEffect(()=>{
+    let mounted=true;
+    const supabase=getSupabaseBrowser();
+    supabase.auth.getSession().then(({data})=>{if(mounted){setSession(data.session);setLoading(false);}});
+    const {data:{subscription}}=supabase.auth.onAuthStateChange((_event,nextSession)=>{if(mounted){setSession(nextSession);setLoading(false);}});
+    return()=>{mounted=false;subscription.unsubscribe();};
+  },[]);
+  async function signOut(){await getSupabaseBrowser().auth.signOut();setSession(null);}
+  if(loading) return <main className="authShell"><div className="authLoading">Carregando NutriClock...</div></main>;
+  if(!session) return <AuthScreen onSession={setSession}/>;
+  return <NutriClockApp key={session.user.id} session={session} onSignOut={signOut}/>;
 }

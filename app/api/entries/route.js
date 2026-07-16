@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "../../../lib/supabaseAdmin";
 import { normalizeEntry, validateEntry } from "../../../lib/validation";
+import { resolveRequestUser } from "../../../lib/requestUser";
 
 export const dynamic = "force-dynamic";
 
-const FIXED_USER_ID = "rafael";
 
 function normalizeExerciseCalories(entry) {
   if (entry?.type !== "exercise") return entry;
@@ -18,6 +18,7 @@ function normalizeExerciseCalories(entry) {
 export async function GET(request) {
 
   try {
+    const user = await resolveRequestUser(request);
     const { searchParams } = new URL(request.url);
     const date = searchParams.get("date");
     const rawLimit = Number(searchParams.get("limit") || 500);
@@ -28,7 +29,7 @@ export async function GET(request) {
     let query = getSupabaseAdmin()
       .from("nutrition_entries")
       .select("*")
-      .eq("user_id", FIXED_USER_ID)
+      .eq("user_id", user.id)
       .order("occurred_at", { ascending: false })
       .limit(limit);
 
@@ -46,7 +47,7 @@ export async function GET(request) {
 
     return NextResponse.json({
       success: true,
-      user_id: FIXED_USER_ID,
+      user_id: user.id,
       entries: data || []
     });
   } catch (error) {
@@ -66,6 +67,7 @@ export async function POST(request) {
 
   try {
     const body = await request.json();
+    const user = await resolveRequestUser(request, body);
     const receivedEntries = Array.isArray(body.entries)
       ? body.entries
       : [body];
@@ -89,7 +91,7 @@ export async function POST(request) {
     }
 
     const rows = entries.map((entry) =>
-      normalizeEntry(entry, FIXED_USER_ID)
+      normalizeEntry(entry, user.id)
     );
 
     const { data, error } = await getSupabaseAdmin()
@@ -123,6 +125,7 @@ export async function PATCH(request) {
 
   try {
     const body = await request.json();
+    const user = await resolveRequestUser(request, body);
     const { id, ...changes } = body;
 
     if (!id) {
@@ -164,7 +167,7 @@ export async function PATCH(request) {
       .from("nutrition_entries")
       .update(update)
       .eq("id", id)
-      .eq("user_id", FIXED_USER_ID)
+      .eq("user_id", user.id)
       .select()
       .single();
 
@@ -190,6 +193,7 @@ export async function PATCH(request) {
 export async function DELETE(request) {
 
   try {
+    const user = await resolveRequestUser(request);
     const id = new URL(request.url).searchParams.get("id");
 
     if (!id) {
@@ -203,7 +207,7 @@ export async function DELETE(request) {
       .from("nutrition_entries")
       .delete()
       .eq("id", id)
-      .eq("user_id", FIXED_USER_ID);
+      .eq("user_id", user.id);
 
     if (error) throw error;
 
