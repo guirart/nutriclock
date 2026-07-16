@@ -1,6 +1,6 @@
 {
-  "name": "nutriclock-v8-body-stats",
-  "version": "8.4.0",
+  "name": "nutriclock-v9-council",
+  "version": "9.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
